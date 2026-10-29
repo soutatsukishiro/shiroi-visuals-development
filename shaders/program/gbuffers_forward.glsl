@@ -174,7 +174,7 @@ void main() {
     // scene: a fixed amount was lost against the sun (some 100 lux) and only showed at night. It is scaled to the
     // brightness the exposure brings to the screen instead (program/final.glsl), and glows (deferred adds it to the
     // bloom). The texture scrolls (vanilla's texture matrix): the shine moves over the item.
-    outColor = vec4(srgbToLinear(c.rgb) * c.a * GLINT_STRENGTH * screenScale(), c.a);
+    outColor = vec4(glintRadiance(c.rgb) * c.a, c.a);
 }
 #endif
 

@@ -36,11 +36,13 @@ float screenScale() {
 }
 
 // The enchantment glint of an item drawn in one pass with it (MC 26 draws glinted items that way; Iris then gives the
-// pack mc_hasGlint / mc_sampleGlint when it defines IRIS_INLINE_GLINT): vanilla adds the glint's square on screen,
-// here the same on the screen's brightness scale, so the moving shine shows as much by day as at night and, bright
-// enough, takes the bloom
+// pack mc_hasGlint / mc_sampleGlint when it defines IRIS_INLINE_GLINT). Vanilla adds the glint's square to the colour
+// on screen, after the display gamma; here that screen value is turned into light (display gamma 2.2) and scaled to the
+// exposure, compensation included, so the moving shine shows as in vanilla by day and at night and its brightest
+// streaks take the bloom. (Added as it is, before the gamma, even the dark part of the glint texture lifted the item
+// to a flat purple.)
 vec3 glintRadiance(vec3 glint) {
-    return glint * glint * GLINT_STRENGTH * screenScale();
+    return srgbToLinear(glint * glint) * GLINT_STRENGTH * screenScale() * exp2(-EXPOSURE_EV);
 }
 
 float duskExposureFloor() { float f = exposureState.duskFloor; return (f > 0.0 && f < 1e6) ? f : 0.0; }
