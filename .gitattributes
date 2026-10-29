@@ -1,0 +1,4 @@
+# Files are stored exactly as they are (the shader sources use CRLF line endings), so a ZIP built from any checkout
+# is the same, byte for byte.
+* -text
+*.png binary

@@ -1,0 +1,11 @@
+# build output (python build.py)
+dist/
+
+# editors and OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+__pycache__/

@@ -1,0 +1,7 @@
+#version 430 compatibility
+#define BLOOM_UP
+#define BLOOM_SRC colortex11
+#define BLOOM_SELF colortex10
+#define BLOOM_SCALE 0.125
+#define VERTEX_SHADER
+#include "/program/post.glsl"

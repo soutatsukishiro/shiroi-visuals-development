@@ -1,0 +1,51 @@
+Shiroi Visuals License
+Version 1.0
+
+Copyright (c) 2026 soutatsukishiro (Souta)
+https://github.com/soutatsukishiro/shiroi-visuals-development
+
+This license covers Shiroi Visuals: the shader code, settings, language files, textures and documentation in this
+repository and in the released ZIP files. Code written by other people keeps its own license; see
+THIRD_PARTY_NOTICES.md.
+
+1. What you can do
+
+   Free of charge, you may:
+   a. use Shiroi Visuals for any personal purpose, including videos, streams, screenshots and servers;
+   b. read, study and modify the code;
+   c. make your own shader packs based on Shiroi Visuals, in whole or in part ("derivative works"), and share them;
+   d. include the unmodified pack in a modpack, as long as the modpack downloads it from an official source
+      (the GitHub releases of the repository above, or the official Modrinth page) or includes it with this license
+      file unchanged.
+
+2. Conditions
+
+   If you share Shiroi Visuals or a derivative work, you must:
+   a. give credit: say clearly, in the description of the download page and in a README or credits file inside
+      the pack, that your work is based on Shiroi Visuals by soutatsukishiro, with a link to the repository above;
+   b. keep this LICENSE file and THIRD_PARTY_NOTICES.md in the pack;
+   c. say that you changed it, if you did;
+   d. release a derivative work under this same license, with its shader source readable as usual for a shader
+      pack, so that others can build on your changes too. You may add your own name to the copyright line for
+      the parts you wrote.
+
+3. What you cannot do
+
+   a. Re-upload the unmodified pack, or a copy with only trivial changes (renamed, re-zipped, different default
+      settings), to any site as your own release.
+   b. Sell Shiroi Visuals or a derivative work, or put it behind a paywall, including paid early access or
+      supporter-only downloads. Donations, and ads on your own pages, are fine.
+   c. Use the name "Shiroi Visuals" as the name of a derivative work, or suggest that it is official. "Based on
+      Shiroi Visuals" is fine.
+
+4. No warranty
+
+   Shiroi Visuals is provided "as is", without warranty of any kind. In no event shall the authors be liable for
+   any claim, damages or other liability arising from its use.
+
+5. Not affiliated
+
+   NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Minecraft is a
+   trademark of Mojang AB.
+
+If you want to use Shiroi Visuals in a way this license does not allow, ask the author through the repository.
