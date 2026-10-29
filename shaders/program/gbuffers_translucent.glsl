@@ -190,6 +190,15 @@ void main() {
     vec3 compatFace = mcCompatFaceNormal(vPlayerPos);
 #endif
     vec4 tex = texture(gtexture, vUv);
+    #if defined GBUF_ENTITIES || defined GBUF_HAND || defined GBUF_HAND_WATER
+        // Glow resource packs (Enchantment Glows and others using the same convention) mark texels by their alpha:
+        // 252 emissive, 253 emissive with shading, 250 / 251 opaque with less or no shading. Vanilla's own shaders
+        // read the marks; under Iris they reach this program, so the glow is made here: 252 / 253 glow as emissive
+        // texels (and bloom), and every marked texel is made opaque again
+        int alphaMark = int(tex.a * 255.0 + 0.5);
+        float markedGlow = alphaMark == 252 ? 1.0 : (alphaMark == 253 ? GLOW_MARK_SHADED : 0.0);
+        if (alphaMark >= 250 && alphaMark <= 253) tex.a = 1.0;
+    #endif
     vec3 N = gl_FrontFacing ? normalize(vNormal) : -normalize(vNormal);
 #ifdef MOD_COMPAT
     if (vCompatFallback != 0 && !mcCompatNormalOK(N)) N = compatFace;
@@ -227,6 +236,7 @@ void main() {
         // For an item that places a block Iris gives the block's id (block.properties), not an item id
         if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
             m = blockMaterial(currentRenderedItemId, tex.rgb);
+        m.emissive = max(m.emissive, markedGlow);
     #endif
     // ice (and frosted ice) texel by texel, as the solid ices in gbuffers_solid (lib/surface.glsl texelDetailMaterial)
     #ifdef PBR_TABLE

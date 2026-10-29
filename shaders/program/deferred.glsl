@@ -12,6 +12,7 @@ void main() { vUv = gl_MultiTexCoord0.xy; gl_Position = sceneClip(ftransform());
 #include "/lib/gbuffer.glsl"
 #include "/lib/shading.glsl"
 #include "/lib/ssr.glsl"
+#include "/lib/exposure.glsl"
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
@@ -98,13 +99,20 @@ void main() {
     float fogT;
     KeyLightResult key;
     vec3 col = shadeSurface(s, L, V, dist, skyIrr, ssr, caustics, fogT, key);
-    col += texture(colortex7, sceneUv(vUv)).rgb * (1.0 - fogT);           // glint and other additive overlays
+    vec3 glint = texture(colortex7, sceneUv(vUv)).rgb;                     // glint (program/gbuffers_forward.glsl FWD_GLINT)
+    col += glint * (1.0 - fogT);
     col *= 1.0 + nightVision * 4.0 * (1.0 - s.skyLevel);         // night vision lifts what the sky does not light
 
     outColor = vec4(sanitize(col), 1.0);
     // without the caustics: composite puts them back only where the surface is seen through water
     outDirect = vec4((key.diffuse + key.specular) * (1.0 - fogT) / max(caustics, 1e-3), 1.0);
-    outGlow = vec4(s.emissive * (1.0 - fogT), 0.0, 0.0, 1.0);
+    // the glint glows too: its share of the bloom, from its brightness on screen
+    #ifdef AUTO_EXPOSURE
+        float glintOnScreen = luminance(glint) * 0.18 / clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y);
+    #else
+        float glintOnScreen = luminance(glint);
+    #endif
+    outGlow = vec4(max(s.emissive, saturate(glintOnScreen * GLINT_GLOW)) * (1.0 - fogT), 0.0, 0.0, 1.0);
 
     #if DEBUG_VIEW == 1
         outColor = vec4(s.albedo, 1.0);

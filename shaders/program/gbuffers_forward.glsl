@@ -164,12 +164,22 @@ void main() {
 #endif
 
 #ifdef FWD_GLINT
+#include "/lib/exposure.glsl"
 /* RENDERTARGETS: 7 */
 layout(location = 0) out vec4 outColor;
 void main() {
     sceneGuard();
     vec4 c = texture(gtexture, vUv) * vColor;
-    outColor = vec4(srgbToLinear(c.rgb) * c.a, c.a);
+    // Vanilla adds the glint on screen, so it shows the same by day and by night. Here it is light added to the HDR
+    // scene: a fixed amount was lost against the sun (some 100 lux) and only showed at night. It is scaled to the
+    // brightness the exposure brings to the screen instead (program/final.glsl), and glows (deferred adds it to the
+    // bloom). The texture scrolls (vanilla's texture matrix): the shine moves over the item.
+    #ifdef AUTO_EXPOSURE
+        float screenScale = clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y) / 0.18;
+    #else
+        float screenScale = 1.0;
+    #endif
+    outColor = vec4(srgbToLinear(c.rgb) * c.a * GLINT_STRENGTH * screenScale, c.a);
 }
 #endif
 

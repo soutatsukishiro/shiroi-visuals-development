@@ -330,6 +330,7 @@ const float CLOUD_FOG_START = 0.9;      // clouds fade into the sky from 90 % of
 const float CLOUD_REFLECTION = 0.25;    // strength of the sky reflection on clouds
 const float STAR_BRIGHTNESS = 0.05;
 const float MOON_MIN_LUX = 0.05;        // the moon disc stays visible while the moon light is off
+const float GLOW_MARK_SHADED = 0.8;   // emissive share of texels a glow resource pack marks "emissive with shading" (alpha 253)
 const float KEY_HORIZON_FADE = 0.105;   // sine of the elevation (6 degrees) over which the sun's and the moon's direct light fade at the horizon
 
 // ------------------------------------------------------------------ automatic exposure

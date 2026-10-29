@@ -24,6 +24,8 @@
 #define MICRO_DETAIL_STRENGTH 1.0   // height scale of that relief [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 #define PBR_TABLE                 // per-block roughness / metal guesses for blocks without a texture set; metal / gem blocks, obsidian and ores texel by texel like the texture sets (lib/surface.glsl). Lights and foliage keep emissive / subsurface anyway
 #define EMISSIVE_STRENGTH 1.0       // emissive brightness multiplier [0.5 1.0 2.0 4.0 8.0]
+#define GLINT_STRENGTH 1.0          // brightness of the enchantment shine [0.0 0.5 1.0 1.5 2.0 3.0]
+#define GLINT_GLOW 1.0              // how much the enchantment shine glows (bloom) [0.0 0.5 1.0 2.0 4.0]
 #define EMISSIVE_BLOOM 6.0          // extra bloom input on emissive pixels (mob eyes, light blocks, lit particles) [0.0 2.0 4.0 6.0 8.0 12.0 16.0]
 
 // ---------------------------------------------------------------- lighting

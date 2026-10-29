@@ -178,6 +178,15 @@ void main() {
     vec3 compatFace = mcCompatFaceNormal(vPlayerPos);
 #endif
     vec4 tex = texture(gtexture, vUv);
+    #if defined GBUF_ENTITIES || defined GBUF_HAND || defined GBUF_HAND_WATER
+        // Glow resource packs (Enchantment Glows and others using the same convention) mark texels by their alpha:
+        // 252 emissive, 253 emissive with shading, 250 / 251 opaque with less or no shading. Vanilla's own shaders
+        // read the marks; under Iris they reach this program, so the glow is made here: 252 / 253 glow as emissive
+        // texels (and bloom), and every marked texel is made opaque again
+        int alphaMark = int(tex.a * 255.0 + 0.5);
+        float markedGlow = alphaMark == 252 ? 1.0 : (alphaMark == 253 ? GLOW_MARK_SHADED : 0.0);
+        if (alphaMark >= 250 && alphaMark <= 253) tex.a = 1.0;
+    #endif
     // the solid terrain layer (gbuffers_terrain_solid) has no cut-out texels: without a discard the depth test runs
     // before this shader and hidden surfaces are never shaded
     #ifndef GBUF_TERRAIN_SOLID
@@ -212,6 +221,7 @@ void main() {
         // a block Iris gives the block's id (block.properties), not an item id
         if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
             m.emissive = blockMaterial(currentRenderedItemId, tex.rgb).emissive;
+        m.emissive = max(m.emissive, markedGlow);
     #endif
     // metal / gem blocks, obsidian and ores: the material texel by texel (lib/surface.glsl texelDetailMaterial)
     #if defined PBR_TABLE && defined GBUF_TERRAIN
