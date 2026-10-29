@@ -19,8 +19,24 @@ void main() {
     vec4 viewPos = gl_ModelViewMatrix * gl_Vertex;
     vPlayerPos = (gbufferModelViewInverse * viewPos).xyz;
     #ifdef FWD_LINE
-        // the outline stays on the pixel grid (TAA keeps no history under it, so a jittered line would shimmer)
-        gl_Position = sceneClip(gl_ProjectionMatrix * viewPos);
+        // MC 26 sends each segment of a line as two triangles whose four corners all sit on the segment's ends (every
+        // vertex written twice, the segment direction as its normal); the vertex shader opens them to the line width,
+        // one side or the other by gl_VertexID parity, as vanilla's own line shader does. Iris does that only for its
+        // own programs, not for a pack's gbuffers_line: drawn as they came, the triangles had no area and the block
+        // outline never showed. Pulled 1/256 towards the camera (vanilla's VIEW_SCALE) so it stays over the faces it
+        // borders, ~2.5 px wide at 1080p, and on the pixel grid (TAA keeps no history under it, so a jittered line
+        // would shimmer).
+        const float VIEW_SHRINK = 1.0 - 1.0 / 256.0;
+        vec4 lineStart = gl_ProjectionMatrix * vec4(viewPos.xyz * VIEW_SHRINK, 1.0);
+        vec4 lineEnd = gl_ProjectionMatrix * vec4((gl_ModelViewMatrix * vec4(gl_Vertex.xyz + gl_Normal, 1.0)).xyz * VIEW_SHRINK, 1.0);
+        vec2 size = sceneSize();
+        vec3 ndcStart = lineStart.xyz / lineStart.w;
+        vec2 screenDir = (lineEnd.xy / lineEnd.w - ndcStart.xy) * size;
+        screenDir = dot(screenDir, screenDir) > 1e-12 ? normalize(screenDir) : vec2(1.0, 0.0);
+        vec2 lineOffset = vec2(-screenDir.y, screenDir.x) * max(2.0, size.y / 1080.0 * 2.5) / size;
+        if (lineOffset.x < 0.0) lineOffset = -lineOffset;
+        if (gl_VertexID % 2 != 0) lineOffset = -lineOffset;
+        gl_Position = sceneClip(vec4((ndcStart + vec3(lineOffset, 0.0)) * lineStart.w, lineStart.w));
     #else
         gl_Position = taaJitterClip(gl_ProjectionMatrix * viewPos);
     #endif

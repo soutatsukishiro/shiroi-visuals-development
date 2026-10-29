@@ -14,6 +14,8 @@
 
 ### Fixes
 
+- The block selection outline shows again. Minecraft 26 sends line segments with no width and expects the shader
+  to open them; the pack never did, so the outline never appeared.
 - Torches and lanterns really glow in your hand now, and so do glowstone and the other light blocks. The game
   reports these items by their block, not as items, so the glow added in R29 never switched on.
 - The moon no longer has a lit square around it, and its dark side stays dark, so the phases read clearly. The
