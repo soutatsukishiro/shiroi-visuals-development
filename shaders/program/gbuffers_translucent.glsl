@@ -70,6 +70,9 @@ void main() {
 #include "/lib/surface.glsl"
 #include "/lib/shading.glsl"
 uniform sampler2D gtexture;
+#ifdef GBUF_HAND_WATER
+uniform int currentRenderedItemId;   // the held item (item.properties)
+#endif
 uniform sampler2D specular;           // Iris PBR atlases (the texture sets of the resource pack)
 uniform sampler2D normals;
 // water texture set (customTexture): normal maps and MERS of the still (16 x 512) and flowing (normal 32 x 1024,
@@ -218,6 +221,11 @@ void main() {
     vec4 c = tex * vColor;
     if (c.a < 0.004) discard;
     Material m = blockMaterial(vMat == MAT_HAND ? MAT_GLASS : vMat, tex.rgb);
+    #ifdef GBUF_HAND_WATER
+        // Flat items (a torch or a lantern in the hand is a sprite) are drawn translucent, so they come here and not
+        // to gbuffers_hand: the flame glows as the placed block's does, with its material instead of the glass one
+        if (currentRenderedItemId == ITEM_LIGHT_SOURCE) m = blockMaterial(MAT_EMISSIVE_TORCH, tex.rgb);
+    #endif
     // ice (and frosted ice) texel by texel, as the solid ices in gbuffers_solid (lib/surface.glsl texelDetailMaterial)
     #ifdef PBR_TABLE
         if (vMat == MAT_ICE && vHalfUv.x > 0.0 && vHalfUv.y > 0.0) texelDetailMaterial(m, vMat, tex.rgb, vSpriteMean);

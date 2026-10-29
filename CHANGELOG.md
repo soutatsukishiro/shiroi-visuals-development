@@ -1,5 +1,15 @@
 # Changelog
 
+## 26.3.11
+
+### Fixes
+
+- Torches and lanterns really glow in your hand now. Held flat items go through a different shader than blocks,
+  and the glow added in R29 never reached them.
+- The moon no longer has a lit square around it, and its dark side stays dark, so the phases read clearly. The
+  phase itself comes from the game: `/time set` can put the world back on day 0, which is a full moon, so use
+  `/time add 24000` to step through the nights.
+
 ## Stable R29
 
 ### Looks
