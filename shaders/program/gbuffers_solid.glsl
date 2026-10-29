@@ -207,9 +207,11 @@ void main() {
         if (currentRenderedItemId >= 110 && currentRenderedItemId <= 116) armourMaterial(m, currentRenderedItemId, tex.rgb);
     #endif
     #if defined GBUF_ENTITIES || defined GBUF_HAND
-        // torches and lanterns as items (in a hand, dropped, in a frame): their flame glows as the placed block's does,
-        // texel by texel, with the same emissive test (the handle and the cage stay as they are)
-        if (currentRenderedItemId == ITEM_LIGHT_SOURCE) m.emissive = blockMaterial(MAT_EMISSIVE_TORCH, tex.rgb).emissive;
+        // light blocks as items (in a hand, dropped, in a frame): they glow as the placed block does, texel by texel,
+        // with the same emissive test (a torch's handle and a lantern's cage stay as they are). For an item that places
+        // a block Iris gives the block's id (block.properties), not an item id
+        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
+            m.emissive = blockMaterial(currentRenderedItemId, tex.rgb).emissive;
     #endif
     // metal / gem blocks, obsidian and ores: the material texel by texel (lib/surface.glsl texelDetailMaterial)
     #if defined PBR_TABLE && defined GBUF_TERRAIN

@@ -37,7 +37,7 @@ A few settings worth knowing about:
 
 - Coloured light from torches is always on. Soul torches and soul fire light the area teal, copper torches green
   and redstone torches red. Normal torches and lamps look the same as before.
-- Torches and lanterns glow in your hand too, just like when they're placed.
+- Torches and lanterns glow in your hand too, and light up the area around you in their own colour.
 - Wet farmland, armour, fallen leaves, petals and metal and ore blocks reflect light in their own way, even
   without a PBR resource pack.
 - If you use a PBR resource pack, its material maps are used instead.

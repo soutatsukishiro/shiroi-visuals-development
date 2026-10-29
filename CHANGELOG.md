@@ -9,11 +9,13 @@
   and the moon's comes in as it rises. The picture also dims steadily through the dusk instead of holding its
   daylight brightness and then dropping to night. The same happens in reverse at sunrise. Day and night look the
   same as before.
+- A torch, lantern or other light in your hands lights up the area around you again, in its own colour (teal
+  for soul torches, red for redstone, green for copper). It can be turned off in Lighting, Held light.
 
 ### Fixes
 
-- Torches and lanterns really glow in your hand now. Held flat items go through a different shader than blocks,
-  and the glow added in R29 never reached them.
+- Torches and lanterns really glow in your hand now, and so do glowstone and the other light blocks. The game
+  reports these items by their block, not as items, so the glow added in R29 never switched on.
 - The moon no longer has a lit square around it, and its dark side stays dark, so the phases read clearly. The
   phase itself comes from the game: `/time set` can put the world back on day 0, which is a full moon, so use
   `/time add 24000` to step through the nights.

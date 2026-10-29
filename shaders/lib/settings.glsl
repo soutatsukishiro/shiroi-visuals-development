@@ -29,6 +29,7 @@
 // ---------------------------------------------------------------- lighting
 #define COLORED_LIGHT               // block light takes the colour of the lights around (soul, copper, redstone torches, soul fire...), lib/lightcolor.glsl
 #define COLORED_LIGHT_SATURATION 1.5 // how strongly the light colours show
+#define HAND_LIGHT                  // a torch, a lantern or another light in the player's hands lights the surroundings, in its colour
 #define BLOCK_LIGHT_INTENSITY 1.0   // block light (torches, lamps) multiplier [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
 #define SKY_LIGHT_CURVE 0.5         // response to the sky lightmap: 0 = s^5 (darker shade), 1 = s^3 [0.0 0.25 0.5 0.75 1.0]
 #define SKY_INTENSITY 1.0           // sky light multiplier [0.5 0.75 1.0 1.25 1.5 2.0]

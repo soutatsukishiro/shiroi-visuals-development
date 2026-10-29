@@ -175,7 +175,6 @@ vec2 normalizeLightmap(vec2 lm) { return clamp((lm - 1.0 / 32.0) * 16.0 / 15.0, 
 #define MAT_FOLIAGE 3
 #define MAT_EMISSIVE_FULL 4
 #define MAT_EMISSIVE_TORCH 5
-#define ITEM_LIGHT_SOURCE 120   // item.properties: torches and lanterns (their flame glows in the hand)
 #define MAT_LAVA 6
 #define MAT_METAL 7
 #define MAT_ORE 8

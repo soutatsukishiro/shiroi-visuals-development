@@ -223,8 +223,10 @@ void main() {
     Material m = blockMaterial(vMat == MAT_HAND ? MAT_GLASS : vMat, tex.rgb);
     #ifdef GBUF_HAND_WATER
         // Flat items (a torch or a lantern in the hand is a sprite) are drawn translucent, so they come here and not
-        // to gbuffers_hand: the flame glows as the placed block's does, with its material instead of the glass one
-        if (currentRenderedItemId == ITEM_LIGHT_SOURCE) m = blockMaterial(MAT_EMISSIVE_TORCH, tex.rgb);
+        // to gbuffers_hand: the flame glows as the placed block's does, with its material instead of the glass one.
+        // For an item that places a block Iris gives the block's id (block.properties), not an item id
+        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
+            m = blockMaterial(currentRenderedItemId, tex.rgb);
     #endif
     // ice (and frosted ice) texel by texel, as the solid ices in gbuffers_solid (lib/surface.glsl texelDetailMaterial)
     #ifdef PBR_TABLE
