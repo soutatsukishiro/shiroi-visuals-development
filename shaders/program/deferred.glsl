@@ -107,11 +107,7 @@ void main() {
     // without the caustics: composite puts them back only where the surface is seen through water
     outDirect = vec4((key.diffuse + key.specular) * (1.0 - fogT) / max(caustics, 1e-3), 1.0);
     // the glint glows too: its share of the bloom, from its brightness on screen
-    #ifdef AUTO_EXPOSURE
-        float glintOnScreen = luminance(glint) * 0.18 / clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y);
-    #else
-        float glintOnScreen = luminance(glint);
-    #endif
+    float glintOnScreen = luminance(glint) / screenScale();
     outGlow = vec4(max(s.emissive, saturate(glintOnScreen * GLINT_GLOW)) * (1.0 - fogT), 0.0, 0.0, 1.0);
 
     #if DEBUG_VIEW == 1

@@ -25,6 +25,24 @@ layout(std430, binding = 0) buffer ExposureState {
 } exposureState;
 
 float sceneAverageLuminance() { float a = exposureState.avgLum; return (a > 0.0 && a < 1e6) ? a : 1.0; }
+// radiance that shows as a value of 1 on screen at the current exposure (without the EV offset): for overlays that
+// vanilla adds on screen, like the enchantment glint
+float screenScale() {
+    #ifdef AUTO_EXPOSURE
+        return clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y) / 0.18;
+    #else
+        return 1.0;
+    #endif
+}
+
+// The enchantment glint of an item drawn in one pass with it (MC 26 draws glinted items that way; Iris then gives the
+// pack mc_hasGlint / mc_sampleGlint when it defines IRIS_INLINE_GLINT): vanilla adds the glint's square on screen,
+// here the same on the screen's brightness scale, so the moving shine shows as much by day as at night and, bright
+// enough, takes the bloom
+vec3 glintRadiance(vec3 glint) {
+    return glint * glint * GLINT_STRENGTH * screenScale();
+}
+
 float duskExposureFloor() { float f = exposureState.duskFloor; return (f > 0.0 && f < 1e6) ? f : 0.0; }
 
 #endif

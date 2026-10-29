@@ -72,6 +72,12 @@ void main() {
 uniform sampler2D gtexture;
 #ifdef GBUF_HAND_WATER
 uniform int currentRenderedItemId;   // the held item (item.properties)
+#include "/lib/exposure.glsl"
+#ifdef IRIS_INLINE_GLINT
+// the glint of an item drawn with it (lib/exposure.glsl glintRadiance): Iris fills these in
+bool mc_hasGlint();
+vec3 mc_sampleGlint();
+#endif
 #endif
 uniform sampler2D specular;           // Iris PBR atlases (the texture sets of the resource pack)
 uniform sampler2D normals;
@@ -278,6 +284,9 @@ void main() {
     float fogT;
     KeyLightResult key;
     vec3 col = shadeSurface(s, daylight(), V, dist, skyIrradianceNow(), vec4(0.0), caustics, fogT, key);
+    #if defined GBUF_HAND_WATER && defined IRIS_INLINE_GLINT
+        if (mc_hasGlint()) col += glintRadiance(mc_sampleGlint()) * (1.0 - fogT);
+    #endif
     outColor = vec4(sanitize(col), c.a);
     outWater = vec4(0.0);
     #ifdef WATER_TEXTURE

@@ -118,6 +118,14 @@ uniform float alphaTestRef;
 #if defined GBUF_ENTITIES || defined GBUF_HAND
 uniform int currentRenderedItemId;   // the item drawn now, armour layers included (item.properties)
 #endif
+#ifdef GBUF_FORWARD
+#include "/lib/exposure.glsl"
+#ifdef IRIS_INLINE_GLINT
+// the glint of an item drawn with it (lib/exposure.glsl glintRadiance): Iris fills these in
+bool mc_hasGlint();
+vec3 mc_sampleGlint();
+#endif
+#endif
 in vec2 vUv;
 in vec2 vLm;
 in vec4 vColor;
@@ -290,6 +298,9 @@ void main() {
         float fogT;
         KeyLightResult key;
         vec3 col = shadeSurface(s, daylight(), V, dist, skyIrradianceNow(), vec4(0.0), caustics, fogT, key);
+        #ifdef IRIS_INLINE_GLINT
+            if (mc_hasGlint()) col += glintRadiance(mc_sampleGlint()) * (1.0 - fogT);
+        #endif
         outLight.w = SURFACE_FORWARD;
         // after deferred colortex2 is the bloom glow weight, and deferred skips it for forward pixels: write no normal
         // here, or entities drawn after deferred would glow by their normal's x
