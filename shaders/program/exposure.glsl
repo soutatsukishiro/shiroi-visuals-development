@@ -18,9 +18,7 @@ float duskExposureFloorFor(float avg) {
     DAYCURVE(SUN_LUX, d, sunLux)
     float fromNoon = min(d, 1.0 - d);
     float eyeSky = saturate(float(eyeBrightnessSmooth.y) / 240.0);
-    float tail = mix(EXPOSURE_AVG_CLAMP.x, DUSK_EXPOSURE_FLOOR * DUSK_EXPOSURE_TAIL.y,
-                     saturate((sunLux - DUSK_EXPOSURE_TAIL.x) / (DUSK_EXPOSURE_TAIL.y - DUSK_EXPOSURE_TAIL.x)));
-    float skyFloor = max(DUSK_EXPOSURE_FLOOR * sunLux, tail);
+    float skyFloor = EXPOSURE_AVG_CLAMP.x + DUSK_EXPOSURE_FLOOR.x * pow(max(sunLux, 0.0), DUSK_EXPOSURE_FLOOR.y);
     float skyAverage = DUSK_EXPOSURE_REF.x * pow(max(sunLux, 0.0), DUSK_EXPOSURE_REF.y);
     float floorHere = skyFloor * min(1.0, avg / max(skyAverage, 1e-4));
     return smoothstep(DUSK_EXPOSURE_PHASES.x, DUSK_EXPOSURE_PHASES.y, fromNoon) * eyeSky * floorHere;
