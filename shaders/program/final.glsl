@@ -91,6 +91,9 @@ void main() {
     #endif
     #ifdef AUTO_EXPOSURE
         float avg = clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y);
+        #if !defined DIM_NETHER && !defined DIM_END
+            avg = max(avg, duskExposureFloor());   // around sunset and sunrise (program/exposure.glsl EXP_AVERAGE)
+        #endif
     #else
         float avg = 0.18;
     #endif

@@ -338,6 +338,19 @@ const vec2  HIST_PERCENTILES = vec2(0.80, 1.00);   // the average is taken over 
 const float ADAPT_RATE = 1.0;              // per second
 const vec2  ADAPT_SPEED = vec2(1.0, 1.0);  // towards brighter, towards darker
 const vec2  EXPOSURE_AVG_CLAMP = vec2(0.125, 16.0);   // range of the average used for the exposure
+// dusk and dawn (program/final.glsl duskExposureFloor): the exposure stops making up for all of the fading sun, so the
+// picture darkens little by little through the sunset instead of holding the daylight brightness and then dropping
+// once the average reaches its lower clamp. For a view of the sky at sunset the floor is DUSK_EXPOSURE_FLOOR x sun
+// illuminance; while the sun's last light goes (illuminance DUSK_EXPOSURE_TAIL.y down to .x) it slides to the lower
+// clamp instead of dropping under it at once, where the ground, lit by the moon, would brighten again. Fitted so the
+// sky and the ground come down evenly from their daylight brightness, from the sun at the horizon, to the night's.
+// Any other view gets the same darkening: its floor is scaled by its own average against the average such a view of
+// the sky has at that light (DUSK_EXPOSURE_REF.x x illuminance^.y), and never above the sky's. Faded in between these
+// day phases (distance from noon), outdoors only
+const float DUSK_EXPOSURE_FLOOR = 0.1;
+const vec2  DUSK_EXPOSURE_TAIL = vec2(0.6, 2.8);
+const vec2  DUSK_EXPOSURE_REF = vec2(0.0256, 1.449);
+const vec2  DUSK_EXPOSURE_PHASES = vec2(0.20, 0.235);
 
 // ------------------------------------------------------------------ materials
 // surface without a texture set: not metallic, not emissive, fully rough, no subsurface

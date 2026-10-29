@@ -19,11 +19,12 @@ layout(std430, binding = 0) buffer ExposureState {
     uint histogram[256];      // bin 0: too dark to count
     float avgLum;             // adapted average luminance
     float targetLum;          // this frame's average
-    float pad0;
+    float duskFloor;          // lower limit of the exposure average around sunset and sunrise (EXP_AVERAGE)
     float pad1;
     uint grid[GRID_CELLS * 2];// per cell: weight, weighted log luminance (fixed point, x256)
 } exposureState;
 
 float sceneAverageLuminance() { float a = exposureState.avgLum; return (a > 0.0 && a < 1e6) ? a : 1.0; }
+float duskExposureFloor() { float f = exposureState.duskFloor; return (f > 0.0 && f < 1e6) ? f : 0.0; }
 
 #endif

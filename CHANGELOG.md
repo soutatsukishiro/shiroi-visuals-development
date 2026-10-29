@@ -2,6 +2,12 @@
 
 ## 26.3.11
 
+### Looks
+
+- Sunsets darken gradually. The picture used to keep its daylight brightness until well after the sun had gone,
+  then drop to night in a few seconds; now the sky and the ground dim steadily from the moment the sun touches the
+  horizon until night falls. The same happens in reverse at sunrise. Day and night look the same as before.
+
 ### Fixes
 
 - Torches and lanterns really glow in your hand now. Held flat items go through a different shader than blocks,

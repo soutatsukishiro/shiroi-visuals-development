@@ -7,6 +7,25 @@
 // Iris parses workGroups as integer literals only (an expression silently falls back to one group per pixel).
 #include "/lib/common.glsl"
 #include "/lib/exposure.glsl"
+#if defined AUTO_EXPOSURE && !defined DIM_NETHER && !defined DIM_END
+#include "/lib/daylight.glsl"
+// lower limit of the exposure average around sunset and sunrise (lib/look.glsl DUSK_EXPOSURE_FLOOR), for a view whose
+// average is avg; 0 by day and underground (sky light at the camera), the lower clamp by night. Uniforms only, so it is
+// worked out here once per frame, for program/final.glsl
+float duskExposureFloorFor(float avg) {
+    float d = dayPhase();
+    float sunLux;
+    DAYCURVE(SUN_LUX, d, sunLux)
+    float fromNoon = min(d, 1.0 - d);
+    float eyeSky = saturate(float(eyeBrightnessSmooth.y) / 240.0);
+    float tail = mix(EXPOSURE_AVG_CLAMP.x, DUSK_EXPOSURE_FLOOR * DUSK_EXPOSURE_TAIL.y,
+                     saturate((sunLux - DUSK_EXPOSURE_TAIL.x) / (DUSK_EXPOSURE_TAIL.y - DUSK_EXPOSURE_TAIL.x)));
+    float skyFloor = max(DUSK_EXPOSURE_FLOOR * sunLux, tail);
+    float skyAverage = DUSK_EXPOSURE_REF.x * pow(max(sunLux, 0.0), DUSK_EXPOSURE_REF.y);
+    float floorHere = skyFloor * min(1.0, avg / max(skyAverage, 1e-4));
+    return smoothstep(DUSK_EXPOSURE_PHASES.x, DUSK_EXPOSURE_PHASES.y, fromNoon) * eyeSky * floorHere;
+}
+#endif
 
 #ifdef EXP_BUILD
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -105,6 +124,12 @@ void main() {
     if (weight <= 0.0) adapted = prevLog;
     exposureState.avgLum = exp2(adapted);
     exposureState.targetLum = exp2(targetLog);
+    #if defined AUTO_EXPOSURE && !defined DIM_NETHER && !defined DIM_END
+        // from the very average program/final.glsl will use
+        exposureState.duskFloor = duskExposureFloorFor(clamp(sceneAverageLuminance(), EXPOSURE_AVG_CLAMP.x, EXPOSURE_AVG_CLAMP.y));
+    #else
+        exposureState.duskFloor = 0.0;
+    #endif
     for (int i = 0; i < 256; i++) exposureState.histogram[i] = 0u;
 }
 #endif
