@@ -1,6 +1,6 @@
 # Changelog
 
-## 26.3.11
+## Stable 26.3.11
 
 ### Looks
 
