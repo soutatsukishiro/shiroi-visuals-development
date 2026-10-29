@@ -4,9 +4,11 @@
 
 ### Looks
 
-- Sunsets darken gradually. The picture used to keep its daylight brightness until well after the sun had gone,
-  then drop to night in a few seconds; now the sky and the ground dim steadily from the moment the sun touches the
-  horizon until night falls. The same happens in reverse at sunrise. Day and night look the same as before.
+- Sunsets are smooth. The clouds, the haze and the ground used to switch from the warm sunset light to the cold
+  night light in a single frame as the sun reached the horizon; now the sun's light fades over its last few degrees
+  and the moon's comes in as it rises. The picture also dims steadily through the dusk instead of holding its
+  daylight brightness and then dropping to night. The same happens in reverse at sunrise. Day and night look the
+  same as before.
 
 ### Fixes
 

@@ -83,10 +83,15 @@ Daylight daylight() {
     L.sun = Celestial(normalize(mat3(gbufferModelViewInverse) * sunPosition), sunTintLin, sunLux, halo * clearSky);
     L.moon = Celestial(normalize(mat3(gbufferModelViewInverse) * moonPosition), moonTintLin, moonLux, 0.0);
 
-    // Iris casts shadows from the sun while it is up and from the moon otherwise
+    // Iris casts shadows from the sun while it is up and from the moon otherwise. It hands over in one frame, with the
+    // sun at the horizon: the key light went from the sun's to the moon's at once (clouds from pink to slate, the pink
+    // haze of the fog gone, the ground from warm to cold, all between two frames). The direct light of each body now
+    // fades out over its last KEY_HORIZON_FADE of elevation, so at the hand-over both are 0 (the sky, lit by both
+    // bodies, does not depend on it). Above that band the key light is as it was.
     bool sunUp = d < 0.25 || d > 0.75;
     L.keyDir = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    L.keyLight = (sunUp ? sunTintLin * sunLux : moonTintLin * moonLux) * clearSky;
+    float keyFade = smoothstep(0.0, KEY_HORIZON_FADE, sunUp ? L.sun.dir.y : L.moon.dir.y);
+    L.keyLight = (sunUp ? sunTintLin * sunLux : moonTintLin * moonLux) * clearSky * keyFade;
 
     // overcast: the sky turns grey with rain, darker with thunder. Where it snows it keeps a blue-lavender zenith and a
     // pink horizon (lib/look.glsl), with thunder too
