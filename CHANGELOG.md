@@ -20,7 +20,7 @@
   (its old rule used a block state that no longer exists).
 - End portals and gateways show a dark field of small teal, green and blue stars in depth that shifts as you move,
   instead of the almost black block Iris draws in their place. The stars are their own light: nearby lava or torches
-  don't tint or brighten them.
+  don't tint or brighten them, and a portal just lit by its last eye no longer shows as a pale blue sheet.
 - Works with Enchantment Glows and other resource packs that mark glowing texels in their item textures: those
   parts now glow (with their animation) instead of showing as plain texture.
 

@@ -336,6 +336,9 @@ const vec3  END_PORTAL_GROUND = vec3(0.0006, 0.0025, 0.003);  // linear, unlit: 
 const vec3  END_PORTAL_TINT_A = vec3(0.20, 0.95, 0.80);      // teal green
 const vec3  END_PORTAL_TINT_B = vec3(0.35, 0.50, 1.00);      // blue
 const float END_PORTAL_BRIGHTNESS = 0.35;
+const float END_PORTAL_CELLS = 40.0;       // star cells across one turn of a layer (about 2.4 per block for the first)
+const float END_PORTAL_STAR_SIZE = 0.055;  // half width of a star, in cells
+const float END_PORTAL_STAR_FILL = 0.25;   // the share of cells that hold a star
 const float GLOW_MARK_SHADED = 0.8;   // emissive share of texels a glow resource pack marks "emissive with shading" (alpha 253)
 const float KEY_HORIZON_FADE = 0.105;   // sine of the elevation (6 degrees) over which the sun's and the moon's direct light fade at the horizon
 

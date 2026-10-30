@@ -178,7 +178,7 @@ layout(location = 6) out vec4 outMotion;
 #if defined GBUF_BLOCK || defined GBUF_ENTITIES
 // The End portal and gateway (block.properties 19, as block entities). With a shader pack Iris replaces vanilla's
 // layered starfield by one layer of its texture (sparse white stars on black), darkened to a deep teal: an almost black
-// block. Drawn here instead as a field of stars in depth: END_PORTAL_LAYERS layers of that texture, each at its own
+// block. Drawn here instead as a field of stars in depth: END_PORTAL_LAYERS layers of stars made in the shader, each at its own
 // depth behind the face (so they slide over each other as the view turns), turned, scaled and drifting slowly, in
 // teal, green and blue, over a dark teal ground; all of it emissive.
 vec3 endPortalStars(vec3 playerPos, vec3 n) {
@@ -194,8 +194,18 @@ vec3 endPortalStars(vec3 playerPos, vec3 n) {
         float angle = k * 2.39996;   // the golden angle: no two layers line up
         mat2 turn = mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
         vec2 uv = turn * (face + slope * (0.5 + 0.6 * k)) * (0.06 + 0.012 * k) + vec2(0.011, 0.006) * frameTimeCounter * (1.0 + 0.35 * k);
-        float star = textureLod(gtexture, fract(uv), 0.0).r;
-        star *= star * star;   // the stars only: the texture's faint grey texels made a pixel haze
+        // the stars are made here, one per cell of a grid at most, not read from the texture: the texture bound for the
+        // portal is not always end_portal.png (a portal just lit by its last eye came with a white one, and every layer
+        // lit every pixel: a pale blue sheet)
+        vec2 grid = uv * END_PORTAL_CELLS;
+        uvec2 c = uvec2(ivec2(floor(grid)) + 4096);
+        uint h = (c.x * 1597334677u) ^ (c.y * 3812015801u) ^ (uint(i) * 2654435761u);
+        h = (h ^ (h >> 16u)) * 2246822519u; h ^= h >> 13u;
+        vec3 r = vec3(uvec3(h, h >> 10u, h >> 20u) & 1023u) / 1023.0;
+        vec2 d = abs(fract(grid) - (0.2 + 0.6 * r.yz));
+        float px = max(fwidth(grid.x), fwidth(grid.y));
+        float star = (1.0 - smoothstep(END_PORTAL_STAR_SIZE, END_PORTAL_STAR_SIZE + px, max(d.x, d.y)))
+                   * step(1.0 - END_PORTAL_STAR_FILL, r.x) * (0.4 + 0.6 * fract(r.x * 7.0));
         vec3 tint = mix(END_PORTAL_TINT_A, END_PORTAL_TINT_B, fract(k * 0.382));
         stars += star * tint * 1.5 / (1.0 + 0.3 * k);
     }
