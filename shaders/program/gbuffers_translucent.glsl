@@ -55,8 +55,9 @@ void main() {
 #ifdef MOD_COMPAT
     vCompatFallback = 0;
     #ifndef GBUF_HAND_WATER
-        vCompatFallback = (vMat <= MAT_DEFAULT || vMat > MAT_LAST_BLOCK) ? 1 : 0;
-        if (vMat < MAT_DEFAULT || vMat > MAT_LAST_BLOCK) vMat = MAT_DEFAULT;
+        bool knownId = vMat >= MAT_DEFAULT && (vMat <= MAT_LAST_BLOCK || vMat == MAT_END_FRAME_EYE);
+        vCompatFallback = (!knownId || vMat == MAT_DEFAULT) ? 1 : 0;
+        if (!knownId) vMat = MAT_DEFAULT;
     #endif
     if (vCompatFallback != 0) {
         vLm = mcCompatLightmap(vLm);

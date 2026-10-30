@@ -16,8 +16,10 @@
 - Nether portals light the blocks around them in purple, like the coloured light of soul and copper torches.
 - More blocks glow in their coloured parts: trial spawners and vaults, sculk sensors and shriekers, lit
   redstone parts (comparators, repeaters, observers, crafters, powered rails), the eye of an End portal frame and
-  the dragon egg. The End portal frame itself no longer glows, only its eye, and the creaking heart glows again
-  (its old rule used a block state that no longer exists).
+  the dragon egg. The End portal frame itself no longer glows, only the raised eye (its green, not the dark pupil),
+  and the creaking heart glows again (its old rule used a block state that no longer exists).
+- PBR Format (Materials): LabPBR 1.3, the layout of most PBR resource packs, besides this pack's own. Read the old
+  way a LabPBR pack lost its glowing parts and made its metals glow.
 - End portals and gateways show a dark field of small teal, green and blue stars in depth that shifts as you move,
   instead of the almost black block Iris draws in their place. The stars are their own light: nearby lava or torches
   don't tint or brighten them, and a portal just lit by its last eye no longer shows as a pale blue sheet.

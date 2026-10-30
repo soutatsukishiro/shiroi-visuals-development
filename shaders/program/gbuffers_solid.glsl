@@ -63,8 +63,9 @@ void main() {
 #ifdef MOD_COMPAT
     vCompatFallback = 0;
     #if defined GBUF_TERRAIN || defined GBUF_BLOCK
-        vCompatFallback = (vMat <= MAT_DEFAULT || vMat > MAT_LAST_BLOCK) ? 1 : 0;
-        if (vMat < MAT_DEFAULT || vMat > MAT_LAST_BLOCK) vMat = MAT_DEFAULT;
+        bool knownId = vMat >= MAT_DEFAULT && (vMat <= MAT_LAST_BLOCK || vMat == MAT_END_FRAME_EYE);
+        vCompatFallback = (!knownId || vMat == MAT_DEFAULT) ? 1 : 0;
+        if (!knownId) vMat = MAT_DEFAULT;
     #elif defined GBUF_ENTITIES
         // entity.30 is assigned only to confirmed mod registry names.
         vCompatFallback = entityId == MAT_ENTITY ? 2 : 1;
@@ -322,6 +323,12 @@ void main() {
             !mcCompatFinite(m.roughness) || !mcCompatFinite(m.sss)) m = defaultMaterial();
     }
 #endif
+    #ifdef GBUF_TERRAIN
+        // the eye is the element raised above the frame's top (13/16 to 16/16 of the block); the frame's top face, at
+        // 13/16, has the same greens and stays unlit (the point is taken just inside the surface)
+        if (vMat == MAT_END_FRAME_EYE && fract(vPlayerPos.y + cameraPosition.y - geoNormal.y * 0.004) < 13.0 / 16.0)
+            m.emissive = 0.0;
+    #endif
     outAlbedo = encodeAlbedo(albedo, m.metal, m.sss);
     outNormal = encodeNormals(N, geoNormal, m.roughness, m.emissive);
     outLight = encodeLighting(vLm, vMat, SURFACE_DEFERRED);

@@ -205,6 +205,7 @@ vec2 normalizeLightmap(vec2 lm) { return clamp((lm - 1.0 / 32.0) * 16.0 / 15.0, 
 #define MAT_PARTICLE 32
 #define MAT_EYES 33          // emissive overlays: spider / enderman / phantom eyes, beacon beam
 #define MAT_OUTLINE 34       // the block selection outline (gbuffers_line): TAA keeps no history there
+#define MAT_END_FRAME_EYE 35  // block.properties 35, an End portal frame with its eye: only the raised eye glows
 #define MAT_CLOUD 40
 
 

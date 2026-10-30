@@ -22,6 +22,7 @@
 // ---------------------------------------------------------------- materials / micro detail
 //#define MICRO_DETAIL              // relief normals from the block textures where the resource pack gives no normal map (off by default: the user prefers flat texels)
 #define MICRO_DETAIL_STRENGTH 1.0   // height scale of that relief [0.25 0.5 0.75 1.0 1.5 2.0 3.0]
+#define PBR_FORMAT 0                // the layout of the PBR resource pack's specular / normal maps: 0 this pack's own, 1 LabPBR 1.3 (most PBR packs) [0 1]
 #define PBR_TABLE                 // per-block roughness / metal guesses for blocks without a texture set; metal / gem blocks, obsidian and ores texel by texel like the texture sets (lib/surface.glsl). Lights and foliage keep emissive / subsurface anyway
 #define EMISSIVE_STRENGTH 1.0       // emissive brightness multiplier [0.5 1.0 2.0 4.0 8.0]
 #define GLINT_STRENGTH 1.0          // brightness of the enchantment shine [0.0 0.5 1.0 1.5 2.0 3.0]

@@ -96,15 +96,12 @@ Material blockMaterial(int id, vec3 texSrgb) {
     else if (id == MAT_LEAF_LITTER || id == MAT_PETALS) m.sss = 0.5;   // fallen leaves and petals let the light through
     else if (id == MAT_EMISSIVE_FULL)  m.emissive = smoothstep(0.25, 0.85, mx);
     else if (id == MAT_EMISSIVE_TORCH) m.emissive = smoothstep(0.55, 0.92, mx) * smoothstep(0.15, 0.4, sat + lum * 0.5);
-    // glowing details (lit redstone parts, sculk, trial spawner and vault, a frame's eye): the coloured texels only; the
-    // flame test above also took in bright grey texels (a comparator's stone, a rail's iron). The pale yellow of an End
-    // portal frame (red as high as green, blue well below) is stone, not the eye: left out
-    else if (id == MAT_GLOW_DETAIL) {
-        float paleYellow = (1.0 - smoothstep(0.03, 0.07, abs(texSrgb.r - texSrgb.g))) * smoothstep(0.08, 0.16, min(texSrgb.r, texSrgb.g) - texSrgb.b);
-        // the eye of ender is a dull green, too grey for the colour test: green clearly above red glows on its own
-        float eyeGreen = smoothstep(0.06, 0.18, texSrgb.g - texSrgb.r) * smoothstep(0.25, 0.55, mx);
-        m.emissive = max(smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat), eyeGreen) * (1.0 - paleYellow);
-    }
+    // glowing details (lit redstone parts, sculk, trial spawner and vault): the coloured texels only; the flame test
+    // above also took in bright grey texels (a comparator's stone, a rail's iron)
+    else if (id == MAT_GLOW_DETAIL)    m.emissive = smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat);
+    // the eye of ender in a frame: a dull green, too grey for the colour test above. Green clearly above red glows, the
+    // dark pupil does not; the frame's own top has the same greens, so gbuffers_solid keeps the glow to the raised eye
+    else if (id == MAT_END_FRAME_EYE)  m.emissive = smoothstep(0.08, 0.16, texSrgb.g - texSrgb.r) * smoothstep(0.25, 0.38, mx);
     else if (id == MAT_LAVA || id == MAT_NETHER_PORTAL) m.emissive = 1.0;
     else if (id == MAT_GLASS) m.roughness = 0.05;
     #ifdef PBR_TABLE
@@ -191,19 +188,35 @@ void armourMaterial(inout Material m, int id, vec3 texSrgb) {
     m.metal = metal;
 }
 
-// texture set from Iris' PBR atlases (same layout as the colour atlas), in the layout this pack expects from a PBR resource pack:
+// texture set from Iris' PBR atlases (same layout as the colour atlas). PBR_FORMAT 0, the layout of this pack's own
+// PBR resource packs:
 //   specular: R metalness, G emissive, B 1 - roughness, A 1   (Iris fills sprites without one with black: A 0)
 //   normals : RG tangent-space normal (0.5 = flat), B 1 - subsurface
+// PBR_FORMAT 1, LabPBR 1.3 (most PBR resource packs):
+//   specular: R perceptual smoothness, G F0 (230-255: metals), B porosity (0-64) / subsurface (65-255),
+//             A emissive (0-254; 255 is none)
+//   normals : RG tangent-space normal, B ambient occlusion (not used), A height (not used)
+// Read in the other layout a LabPBR pack lost its emission (it is in A) and made every metal glow (G = 230+).
 // Emissive keeps the fallback's light-block value as a floor (the pack's emissive is low on light blocks).
 bool textureSetMaterial(sampler2D spec, sampler2D nrm, vec2 uv, inout Material m, out vec3 tsNormal) {
     tsNormal = vec3(0.0, 0.0, 1.0);
     vec4 s = texture(spec, uv);
-    if (s.a < 0.5) return false;
-    vec4 n = texture(nrm, uv);
-    m.metal = s.r;
-    m.emissive = max(s.g, m.emissive);
-    m.roughness = 1.0 - s.b;
-    m.sss = 1.0 - n.b;
+    #if PBR_FORMAT == 1
+        if (dot(s, s) < 1e-6) return false;   // a sprite without a specular map
+        vec4 n = texture(nrm, uv);
+        float smoothness = s.r;
+        m.roughness = (1.0 - smoothness) * (1.0 - smoothness);
+        m.metal = step(229.5 / 255.0, s.g);
+        m.emissive = max(s.a < 254.5 / 255.0 ? s.a * (255.0 / 254.0) : 0.0, m.emissive);
+        m.sss = s.b > 64.5 / 255.0 ? (s.b * 255.0 - 65.0) / 190.0 : 0.0;
+    #else
+        if (s.a < 0.5) return false;
+        vec4 n = texture(nrm, uv);
+        m.metal = s.r;
+        m.emissive = max(s.g, m.emissive);
+        m.roughness = 1.0 - s.b;
+        m.sss = 1.0 - n.b;
+    #endif
     vec2 xy = n.rg * 2.0 - 1.0;
     if (dot(xy, xy) > 4e-4) tsNormal = vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
     return true;
