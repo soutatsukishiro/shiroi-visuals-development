@@ -18,9 +18,16 @@ flat out int vMat;
 #ifdef MOD_COMPAT
 flat out int vCompatFallback;
 #endif
+#if defined PBR_TABLE || (defined COLORED_LIGHT && !defined GBUF_HAND_WATER)
+uniform sampler2D gtexture;
+#endif
+#if defined COLORED_LIGHT && !defined GBUF_HAND_WATER
+    // the Nether portal's light takes its colour (lib/lightcolor.glsl): its quads add their colour to the light grid
+    #define LC_SPLAT
+    #include "/lib/lightcolor.glsl"
+#endif
 #ifdef PBR_TABLE
 #include "/lib/sprite_mean.glsl"
-uniform sampler2D gtexture;
 flat out vec2 vSpriteMean;   // the ice sprite's mean luminance / saturation (lib/surface.glsl texelDetailMaterial)
 #endif
 
@@ -37,6 +44,12 @@ void main() {
         vMat = MAT_HAND;
     #else
         vMat = int(mc_Entity.x + 0.5);
+        #ifdef COLORED_LIGHT
+            // a Nether portal lights the blocks around in purple, not in the plain torch colour of the block light:
+            // one corner of each of its quads gives the colour of its bright texels to the light grid, as the light
+            // sources of the solid terrain do (program/gbuffers_solid.glsl)
+            if (vMat == MAT_NETHER_PORTAL && (gl_VertexID & 3) == 0) lightSplat(gtexture, vUv, mc_midTexCoord.xy, vPlayerPos);
+        #endif
     #endif
 
 #ifdef MOD_COMPAT

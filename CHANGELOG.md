@@ -13,6 +13,7 @@
   for soul torches, red for redstone, green for copper). It can be turned off in Lighting, Held light.
 - Enchanted items shine as in vanilla by day and by night (the shine used to be lost in daylight), and the moving
   shine glows. Materials, Enchantment Shine and Enchantment Glow set how much.
+- Nether portals light the blocks around them in purple, like the coloured light of soul and copper torches.
 - Works with Enchantment Glows and other resource packs that mark glowing texels in their item textures: those
   parts now glow (with their animation) instead of showing as plain texture.
 
