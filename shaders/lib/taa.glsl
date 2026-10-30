@@ -212,23 +212,22 @@ vec3 temporalResolve(vec2 uv, vec3 raw, out vec3 display, out float storedDepth)
         }
     }
     // Phase hold (TAA_ANTI_FLICKER). Still camera, still surface, and the depth did not match: at a cutout or texture
-    // edge the nearest internal sample lands on the other surface (leaf / background) in one of the 8 jitter phases,
-    // worst at 85 %. Rejecting the history there showed that phase's raw sample for one frame in eight (a dip of up to
-    // 20 levels, then back: the TAAU flicker). In such a frame the screen now shows the history instead; the history
-    // itself is resolved exactly as before (rejected, this phase's sample stored), so nothing else changes. Only where
-    // the history's surface is still in the 3 x 3 neighbourhood and no actor is (an edge between two still surfaces,
-    // not ground uncovered by a mob that walked on), and for at most 2 frames in a row (a run count per pixel,
-    // ping-pong images taaFlickA / B): a change that stays (a block broken) shows on the third.
-    // (Keeping the history itself, or mixing the phase in, clipped or not, made some edge pixels settle on the other
-    // surface or on stale values.)
-    // per-pixel state carried with the history (ping-pong images taaFlickA / B): r the phase hold's run, g how many
-    // frames this pixel has been still (the settle-in below)
+    // edge the nearest internal sample lands on the other surface (leaf / background) in some of the 8 jitter phases,
+    // worst at 85 %. Rejecting the history there showed that phase's raw sample, and the next frames resolved from it:
+    // a dip of up to 40 levels for one or two frames in eight (the TAA flicker). The target look's TAAU rejects no
+    // history by depth at all: it keeps it and bounds it by the colours around (Upscaling.material TAAU). Here, where
+    // the history's surface is still in the 3 x 3 neighbourhood and no actor is beside it (an edge between two still
+    // surfaces, not ground uncovered by a mob that walked on), the history is kept and clipped like any other; a
+    // change that stays (a block broken) is taken by the clip. (Formerly the screen showed the history for at most 2
+    // frames while the history itself was still rejected: the dip came back on the next frames.)
+    // per-pixel state carried with the history (ping-pong images taaFlickA / B): r unused (the old hold's run), g how
+    // many frames this pixel has been still (the settle-in below)
     ivec2 prevPx = clamp(ivec2(prevUv * screenSize()), ivec2(0), ivec2(screenSize()) - 1);
     vec2 pixelState = (frameCounter & 1) == 0 ? texelFetch(taaFlickBSampler, prevPx, 0).rg : texelFetch(taaFlickASampler, prevPx, 0).rg;
     // a custom image starts uninitialised (NaN or garbage on some drivers): taken as 0
     pixelState = vec2(pixelState.x >= 0.0 && pixelState.x <= 255.0 ? pixelState.x : 0.0, pixelState.y >= 0.0 && pixelState.y <= 255.0 ? pixelState.y : 0.0);
     bool phaseMismatch = false;
-    float heldDepth = 0.0, holdRun = pixelState.r;
+    float heldDepth = 0.0;
     #ifdef TAA_ANTI_FLICKER
     if (!depthMatch && stillPixel && !sky && !hand
         && !(material == MAT_ENTITY || material == MAT_PARTICLE || material == MAT_EYES || late < -1.5)) {
@@ -244,12 +243,10 @@ vec3 temporalResolve(vec2 uv, vec3 raw, out vec3 display, out float storedDepth)
             int mq = int(texelFetch(colortex3, q, 0).z * 255.0 + 0.5);
             actorNear = actorNear || mq == MAT_ENTITY || mq == MAT_PARTICLE || mq == MAT_EYES || mq == MAT_HAND || abs(texelFetch(colortex7, q, 0).a) > 1.5;
         }
-        phaseMismatch = heldDepth > 0.0 && !actorNear && holdRun < 1.5;
+        phaseMismatch = heldDepth > 0.0 && !actorNear;
     }
     #endif
-    vec3 heldDisplay = vec3(0.0);
-    if (phaseMismatch && valid) heldDisplay = taaHistory(prevUv);   // what the screen showed: the history (unsharpened)
-    valid = valid && depthMatch;
+    valid = valid && (depthMatch || phaseMismatch);
     // Still camera, still surface: over the 8 jitter phases this pixel gathers samples from up to 1.5 samples away
     // (tent of radius 1 + jitter 0.5), but one frame's 3 x 3 only sees 1. On an edge (the horizon of a lake, the
     // outline of a player, a tree top) some phases saw only one side and clipped the accumulated history to it, a
@@ -277,7 +274,22 @@ vec3 temporalResolve(vec2 uv, vec3 raw, out vec3 display, out float storedDepth)
         vec3 delta = h - centre;
         vec3 excess = abs(delta) / extent;
         float outside = max(excess.x, max(excess.y, excess.z));   // > 1: the history had to be clipped into the box
-        h = centre + delta / max(1.0, outside);
+        vec3 boxed = centre + delta / max(1.0, outside);
+        #ifdef TAA_ANTI_FLICKER
+            // a still pixel's history is clipped along the line towards the current sample, as the target look's TAAU
+            // does (to where that line enters the box), not towards the box centre: on an edge whose box changes with
+            // the jitter phase (the far edge of a lake against the sky) the history keeps its own side and no longer
+            // dips to the middle in some phases. In motion as before
+            if (outside > 1.0 && stillPixel) {
+                vec3 toCurrent = current - h;
+                vec3 inv = 1.0 / mix(vec3(1e-6), toCurrent, greaterThan(abs(toCurrent), vec3(1e-6)));
+                vec3 t0 = (lo - h) * inv, t1 = (hi - h) * inv;
+                vec3 tNear = min(t0, t1), tFar = max(t0, t1);
+                float tIn = max(max(tNear.x, tNear.y), tNear.z), tOut = min(min(tFar.x, tFar.y), tFar.z);
+                if (tIn <= tOut && tOut >= 0.0) boxed = h + toCurrent * clamp(tIn, 0.0, 1.0);
+            }
+        #endif
+        h = boxed;
         float blend = min(TAA_BLEND * mix(1.0, 0.75, saturate(motion / 24.0)), mix(TAA_BLEND, 0.85, saturate(motion / 3.0)));
         // a still camera on a still surface: the history is reliable, keep more of it (the remaining jitter
         // shimmer goes from about 19 % to under 9 % of a frame's variation); anything that changes is clipped above
@@ -309,14 +321,13 @@ vec3 temporalResolve(vec2 uv, vec3 raw, out vec3 display, out float storedDepth)
         resolved = mix(current, h, blend);
     }
     {
-        float run = phaseMismatch ? holdRun + 1.0 : 0.0;
         // settled frames: counted while the pixel moves less than a pixel per frame, back to 0 when it moves more (it is
         // that motion that softens the history). The settle-in above only acts under half a pixel, so a slow drift (far
         // terrain while walking) keeps counting and keeps the full weight; a history rejected now and then on a still
         // view (a thin edge) keeps its count too, so a still picture is resolved exactly as before
         float still = length((prevUv - uv) * screenSize()) < 1.0 ? min(pixelState.g + 1.0, 255.0) : 0.0;
-        if ((frameCounter & 1) == 0) imageStore(taaFlickA, ivec2(gl_FragCoord.xy), vec4(run, still, 0.0, 0.0));
-        else imageStore(taaFlickB, ivec2(gl_FragCoord.xy), vec4(run, still, 0.0, 0.0));
+        if ((frameCounter & 1) == 0) imageStore(taaFlickA, ivec2(gl_FragCoord.xy), vec4(0.0, still, 0.0, 0.0));
+        else imageStore(taaFlickB, ivec2(gl_FragCoord.xy), vec4(0.0, still, 0.0, 0.0));
     }
     vec3 history = taaDecode(resolved);
     // Bounded luma-only detail, excluded from feedback: no recurring sharpening,
@@ -327,6 +338,5 @@ vec3 temporalResolve(vec2 uv, vec3 raw, out vec3 display, out float storedDepth)
     if (hand || material == MAT_ENTITY || material == MAT_PARTICLE || late < -1.5) amount *= 0.35;
     resolved.x = clamp(resolved.x + detail * amount, low.x, high.x);
     display = taaDecode(resolved);
-    if (phaseMismatch && dot(heldDisplay, vec3(1.0)) > 0.0) display = heldDisplay;
     return history;
 }

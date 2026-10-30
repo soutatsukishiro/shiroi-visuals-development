@@ -62,7 +62,15 @@ vec4 traceScreenReflection(sampler2D depthTex, vec3 viewPos, vec3 viewNormal, fl
         if (texture(colortex3, sceneUv(hit.xy)).w < 0.25) return MISS;
     #endif
     float lo = tBefore, hi = tHit;
-    for (int k = 0; k < SSR_BISECTION_STEPS; k++) {
+    #ifdef SHIROI_UPSCALE
+        // the same 12 steps, with a bound the compiler cannot unroll: at the 85 % internal resolution the unrolled loop
+        // made the NVIDIA OpenGL compiler build a pass some 30 times slower (deferred 1 ms -> 30 ms at 1080p; 4 steps or
+        // fewer stayed fast). frameCounter is never negative, so the bound is always SSR_BISECTION_STEPS
+        int bisections = SSR_BISECTION_STEPS + min(frameCounter, 0);
+    #else
+        const int bisections = SSR_BISECTION_STEPS;
+    #endif
+    for (int k = 0; k < bisections; k++) {
         float mid = (lo + hi) * 0.5;
         vec3 p = a + stepVec * mid;
         if (viewAxisDepth(texture(depthTex, sceneUv(p.xy)).r) < viewAxisDepth(p.z)) { hit = p; hi = mid; } else lo = mid;

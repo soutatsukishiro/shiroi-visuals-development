@@ -69,7 +69,7 @@
 #define RENDER_SCALE 100 // internal scene resolution per axis; 85 is experimental [100 85]
 #define TAA_SHARPNESS 0.25           // detail recovery, not fed back into history [0.0 0.1 0.2 0.25 0.35 0.5]
 #define ENTITY_MOTION                // motion vectors of mobs, players and their limbs for the TAA (vertex tracking, lib/entitymotion.glsl)
-#define TAA_ANTI_FLICKER             // edges between two still surfaces no longer blink once every 8 frames (mostly at 85 %): the odd jitter phase holds the history
+#define TAA_ANTI_FLICKER             // edges of still surfaces no longer blink with the jitter (mostly at 85 %): their history is kept and clipped towards the current sample, as the target look's TAAU
 #define TAA_BLEND 0.93                // history weight [0.8 0.85 0.9 0.93 0.95]
 #define BLOOM                        // dual-filter bloom
 #define BLOOM_INTENSITY 0.02         // [0.0 0.01 0.02 0.04 0.06 0.1 0.2]

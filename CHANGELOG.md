@@ -85,6 +85,19 @@
 - The moon no longer has a lit square around it, and its dark side stays dark, so the phases read clearly. The
   phase itself comes from the game: `/time set` can put the world back on day 0, which is a full moon, so use
   `/time add 24000` to step through the nights.
+- Much less TAA flicker when you stand still. Edges of leaves, the top edge of grass blocks, the far edge of a lake
+  against the sky and other edges of still surfaces used to blink every few frames (mostly at 85% resolution).
+  As in the target look's TAA, their history is now kept and bounded by the colours around it instead of being
+  thrown away. Strongly blinking pixels drop by about 60% in still scenes. The picture is the same, and moving
+  areas are resolved as before. Post processing, TAA anti-flicker turns it off.
+
+### Performance
+
+- Local exposure is about 0.8 ms cheaper per frame at 1080p (about +6% fps in the test scene) with the same
+  picture: its blur now reads each pixel it needs once instead of up to 25 times.
+- At 85% internal resolution (Post processing, Internal resolution) the lighting pass is about 30 times faster on NVIDIA
+  (about 30 ms down to 1 ms per frame at 1080p) with the same picture. A loop in the screen-space reflections made the
+  driver build a very slow version of it at that resolution only.
 
 ## Stable R29
 

@@ -174,4 +174,4 @@ value.BIOME_GRADING.2=Sunrise/sunset only
 option.SUN_HALO_STRENGTH=Sun halo strength
 option.SUN_HALO_STRENGTH.comment=The sky's glow around the sun near sunrise and sunset. 1 = full strength.
 option.TAA_ANTI_FLICKER=TAA anti-flicker
-option.TAA_ANTI_FLICKER.comment=Edges between leaves and what is behind them, and other edges of still surfaces, no longer blink once every few frames (mostly at 85% resolution). Moving areas are resolved as before.
+option.TAA_ANTI_FLICKER.comment=Edges between leaves and what is behind them, the far edge of water against the sky and other edges of still surfaces no longer blink every few frames (mostly at 85% resolution): their history is kept and bounded by the colours around, as in the target look. Moving areas are resolved as before.

@@ -1,5 +1,6 @@
 // HDR post chain:
-//  LE_DOWN      1/8 resolution gaussian of log luminance (colortex15): the coarse "base" layer of local exposure
+//  LE_DOWN      1/8 resolution gaussian of log luminance (colortex15): the coarse "base" layer of local exposure,
+//               computed by program/le_down.glsl (the same pass's compute shader) and copied here
 //  LE_APPLY     optional TAA, then local exposure: base / detail decomposition [Durand & Dorsey 2002] where the
 //               base is the bilateral grid [Chen et al. 2007] mixed with the gaussian; the base is pulled towards the
 //               average luminance by LOCAL_EXPOSURE_STRENGTH, the detail is kept. Also stores the frame for next
@@ -101,19 +102,9 @@ float logRangeNorm(float lumLog) { return (lumLog - LUM_RANGE.x) / (LUM_RANGE.y 
 #ifdef LE_DOWN
 /* RENDERTARGETS: 15 */
 layout(location = 0) out vec4 outLog;
+uniform sampler2D leDownSampler;
 void main() {
-    vec2 uv = gl_FragCoord.xy / max(floor(screenSize() * 0.125), vec2(1.0));
-    const int R = 2;                 // 5x5 taps, 4 pixels apart
-    float sigma2 = float(R * R) * 0.5;
-    float sum = 0.0, weight = 0.0;
-    for (int y = -R; y <= R; y++) for (int x = -R; x <= R; x++) {
-        vec2 o = vec2(x, y);
-        float w = exp(-dot(o, o) / sigma2);
-        vec2 p = min(uv + o * 4.0 / screenSize(), vec2(1.0) - 0.5 / screenSize());
-        sum += w * log2(clamp(luminance(texture(colortex0, sceneUv(p)).rgb), LUM_RANGE.z, LUM_RANGE.w));
-        weight += w;
-    }
-    outLog = vec4(sum / weight, 0.0, 0.0, 1.0);
+    outLog = vec4(texelFetch(leDownSampler, ivec2(gl_FragCoord.xy), 0).r, 0.0, 0.0, 1.0);
 }
 #endif
 
