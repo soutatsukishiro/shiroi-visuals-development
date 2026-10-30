@@ -56,7 +56,8 @@ void main() {
     #elif defined GBUF_HAND
         vMat = MAT_HAND;
     #else
-        vMat = MAT_ENTITY;
+        // the End portal and gateway are block entities that Iris draws as a plain entity (see endPortalStars)
+        vMat = blockEntityId == MAT_NETHER_PORTAL ? MAT_NETHER_PORTAL : MAT_ENTITY;
     #endif
 
 #ifdef MOD_COMPAT
@@ -174,6 +175,34 @@ layout(location = 6) out vec4 outMotion;
 /* RENDERTARGETS: 1,2,3 */
 #endif
 
+#if defined GBUF_BLOCK || defined GBUF_ENTITIES
+// The End portal and gateway (block.properties 19, as block entities). With a shader pack Iris replaces vanilla's
+// layered starfield by one layer of its texture (sparse white stars on black), darkened to a deep teal: an almost black
+// block. Drawn here instead as a field of stars in depth: END_PORTAL_LAYERS layers of that texture, each at its own
+// depth behind the face (so they slide over each other as the view turns), turned, scaled and drifting slowly, in
+// teal, green and blue, over a dark teal ground; all of it emissive.
+vec3 endPortalStars(vec3 playerPos, vec3 n) {
+    vec3 V = normalize(playerPos);
+    vec3 t = abs(n.y) > 0.5 ? vec3(1.0, 0.0, 0.0) : normalize(vec3(-n.z, 0.0, n.x));
+    vec3 b = cross(n, t);
+    vec3 world = playerPos + cameraPosition;
+    vec2 face = vec2(dot(world, t), dot(world, b));
+    vec2 slope = vec2(dot(V, t), dot(V, b)) / max(abs(dot(V, n)), 0.2);   // across the face per block of depth
+    vec3 stars = END_PORTAL_GROUND;
+    for (int i = 0; i < END_PORTAL_LAYERS; i++) {
+        float k = float(i);
+        float angle = k * 2.39996;   // the golden angle: no two layers line up
+        mat2 turn = mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
+        vec2 uv = turn * (face + slope * (0.5 + 0.6 * k)) * (0.06 + 0.012 * k) + vec2(0.011, 0.006) * frameTimeCounter * (1.0 + 0.35 * k);
+        float star = textureLod(gtexture, fract(uv), 0.0).r;
+        star *= star * star;   // the stars only: the texture's faint grey texels made a pixel haze
+        vec3 tint = mix(END_PORTAL_TINT_A, END_PORTAL_TINT_B, fract(k * 0.382));
+        stars += star * tint * 1.5 / (1.0 + 0.3 * k);
+    }
+    return stars;
+}
+#endif
+
 // blocks that get the relief from their own texture when the resource pack gives them no normal map
 bool takesTexelRelief(int mat) {
     return mat != MAT_LAVA && mat != MAT_NETHER_PORTAL && mat != MAT_LEAVES && mat != MAT_FOLIAGE && mat != MAT_LEAF_LITTER && mat != MAT_PETALS && vHalfUv.x > 0.0 && vHalfUv.y > 0.0;
@@ -257,6 +286,14 @@ void main() {
     }
 #endif
 
+    #if defined GBUF_BLOCK || defined GBUF_ENTITIES
+        // after the mod compatibility fallback, which would give it the plain material
+        if (vMat == MAT_NETHER_PORTAL) {
+            hasTextureSet = false;
+            albedo = linearToSrgb(endPortalStars(vPlayerPos, normalize(vNormal)) * END_PORTAL_BRIGHTNESS);
+            m = Material(0.0, 1.0, 1.0, 0.0);
+        }
+    #endif
     bool normalMapped = hasTextureSet && tsNormal.z < 0.9999;
     if (normalMapped) N = normalize(derivativeFrame(geoNormal, vPlayerPos, vUv) * tsNormal);
     #if defined MICRO_DETAIL && defined GBUF_TERRAIN
