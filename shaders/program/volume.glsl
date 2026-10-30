@@ -101,11 +101,16 @@ void main() {
 
 #ifdef VOL_POPULATE
 #include "/lib/skymodel.glsl"
+#if defined COLORED_LIGHT && defined VOL_BLOCK_LIGHT
+    #define LC_SAMPLE
+    #include "/lib/lightcolor.glsl"
+#endif
 #define PROBE_SAMPLER
 #include "/lib/skyprobe.glsl"
 writeonly uniform image3D volMedia;
 uniform sampler3D volShadowASampler;
 uniform sampler3D volShadowBSampler;
+uniform sampler2D colortex3;
 uniform sampler2D colortex4;
 uniform sampler2D colortex14;
 uniform sampler2D depthtex0;
@@ -149,11 +154,47 @@ void main() {
     scattering *= keep;
     extinction *= keep;
 
-    // sky ambient, isotropic, scaled by the sky light at the camera
+    // how much of the sky this point of the fog sees. The target look reads it from a volume of sky visibility
+    // (T_SkyAmbientSamples) at every point; here it runs along the view ray from the sky light at the camera to the
+    // sky light of the surface behind (open sky where there is none): the fog under trees, in a cave mouth or by a
+    // wall gets the sky light there, not the camera's. Under water as before (the water's light is matched to it)
+    float skyVis = L.eyeSky;
+    #ifdef VOL_SKY_VISIBILITY
+        float opaque = texture(depthtex1, sceneUv(t.xy)).r;
+        vec4 behind = texture(colortex3, sceneUv(t.xy));
+        float behindSky = opaque >= 1.0 || behind.w < 0.25 ? 1.0 : behind.y;
+        float along = saturate(depth / max(viewDepthAt(t.xy, opaque), 1e-3));
+        skyVis = mix(mix(L.eyeSky, behindSky, along), L.eyeSky, water);
+    #endif
+    // sky ambient, isotropic, scaled by the sky visibility there
     vec3 skyIrradiance = probeIrradiance(colortex14) * SKY_IRRADIANCE_GAIN * SKY_INTENSITY;
-    vec3 inscatter = scattering * max(L.eyeSky * skyIrradiance, vec3(m.ambientFloor)) * INV_4PI;
-    // key light, only where the camera sees the sky
-    if (L.eyeSky > 0.0001) {
+    vec3 inscatter = scattering * max(skyVis * skyIrradiance, vec3(m.ambientFloor)) * INV_4PI;
+    #if defined COLORED_LIGHT && defined VOL_BLOCK_LIGHT
+        // block light in the fog, as the target look's volume adds the block ambient of the voxels around (block base
+        // ambient x the voxel's light x 6, the same ambient its surfaces get): torches and lamps light the fog around
+        // them, in their colour. The light level there is not known in this pass: it comes from the light colour grid
+        // (lib/lightcolor.glsl), whose weight spreads around each light with a Gaussian of ~5 blocks: the distance to
+        // the light from the weight, then one level less per block, as the game's block light (a glowstone gives the
+        // grid ~0.027 at the 0.7-0.9 light level around it)
+        vec3 lcp = worldPos / LC_CELL - vec3(lcOrigin(cameraPosition));
+        vec3 lcEdge = min(lcp, vec3(LC_GRID) - lcp);
+        if (all(greaterThan(lcEdge, vec3(0.5)))) {
+            vec4 lc = (frameCounter & 1) == 0 ? texture(lcCSampler, lcp / vec3(LC_GRID)) : texture(lcDSampler, lcp / vec3(LC_GRID));
+            if (lc.a > 1e-4) {
+                float lightDist = sqrt(max(-50.0 * log(min(lc.a / VOL_BLOCK_LIGHT_PEAK, 1.0)), 0.0));
+                float level = saturate(1.0 - lightDist / 15.0) * saturate(min(lcEdge.x, min(lcEdge.y, lcEdge.z)) / 4.0);
+                vec3 blockAmbient = blockLightColor(level) * L.blockScale;
+                vec3 hue = lc.rgb / lc.a; hue /= max(hue.r, max(hue.g, hue.b));
+                float colourful = smoothstep(0.25, 0.4, distance(hue, LC_TORCH_HUE));
+                vec3 c = pow(hue, vec3(COLORED_LIGHT_SATURATION));
+                blockAmbient = mix(blockAmbient, c * (max(blockAmbient.r, max(blockAmbient.g, blockAmbient.b)) / max(c.r, max(c.g, c.b))), colourful);
+                inscatter += scattering * blockAmbient * INV_4PI;
+            }
+        }
+    #endif
+    // key light, only where this point sees the sky (the target look's sky light heuristic; the shadow volume does
+    // the rest)
+    if (skyVis > 0.0001) {
         vec3 toLightView = normalize(mat3(gbufferModelView) * L.keyDir);
         float phase = henyeyGreenstein(mix(m.airG, m.waterG, water), dot(normalize(viewPos), toLightView));
         float visible = (frameCounter & 1) == 0 ? texelFetch(volShadowASampler, id, 0).r : texelFetch(volShadowBSampler, id, 0).r;

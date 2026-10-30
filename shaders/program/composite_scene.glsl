@@ -177,21 +177,35 @@ float surfaceReflectance(float cosView) {
     return sin2 > 0.565323055 ? 1.0 : waterFresnel(sqrt(1.0 - sin2 * 1.76890016));
 }
 
-// colour of a fog the camera is inside (water, powder snow): the medium's tint lit by the sky ambient at the camera
-// plus twice the block light, never below 1. The sky ambient is the one a surface at the camera would get (sky
-// probe x the ambient share x the sky light response): with the whole sky irradiance the water fog was about twice
-// as bright as the lit floor at noon, a pale wall. It follows the daylight (with the floor of 1 alone the water was
-// a bright wall at night).
-vec3 mediumFogColour(vec3 tint, Daylight L) {
-    float day = clamp(sin(sunAngle * 6.2831853) * 2.0 + 0.5, 0.0, 1.0);
-    vec3 skyAtEye = skyIrradianceNow() * skyLightResponse(L.eyeSky);
-    return max(skyAtEye + L.blockScale * 2.0, vec3(1.0)) * tint * mix(0.2, 1.0, day);
+// colour of a fog the camera is inside (water, powder snow): the medium's tint lit by what lights a surface at the
+// camera: the sky ambient (sky probe x the ambient share x the sky light response: with the whole sky irradiance the
+// water fog was about twice as bright as the lit floor at noon, a pale wall) and twice the block light there, never
+// below MEDIUM_FOG_FLOOR x the scene's ambient floor. In the target look the water's glow is light scattered in it,
+// so it darkens with the night like the rest: navy blue at midnight, the floor still visible. A fixed +2 for the
+// block light (counted even with no light near), a floor of 1 and a night factor of 0.2 made the water at night a
+// bright cyan wall, nearly as bright as by day. Matched to the target look at 13000 and 18000 (the ocean's colour).
+vec3 mediumFogColour(vec3 tint, vec3 skyAtEye, Daylight L) {
+    vec3 blockAtEye = blockLightColor(saturate(float(eyeBrightnessSmooth.x) / 240.0)) * L.blockScale * 2.0;
+    return max(skyAtEye + blockAtEye, L.ambientFloor * MEDIUM_FOG_FLOOR * underwaterNightLift()) * tint;
 }
+vec3 mediumFogColour(vec3 tint, Daylight L) { return mediumFogColour(tint, skyIrradianceNow() * skyLightResponse(L.eyeSky), L); }
+// depth of the camera under the water surface (blocks): the game's sky light loses a level per block of water, so
+// down to 15 blocks it gives the depth; deeper it reads 0, and the sea level stands in for the surface
+float eyeWaterDepth(Daylight L) { return waterDepthAt(L.eyeSky, cameraPosition.y); }
+// the biome's water (shaders.properties: oceans deep blue, rivers bright, swamps murky), or the default without it.
+// Lit by the sky through the water above the camera: with the sky light at the eye the fog went black on any sea
+// floor deeper than 15 blocks, where that light is 0 (the target look keeps the open water blue there)
 vec3 underwaterFogColour(Daylight L) {
-    return mediumFogColour(srgbToLinear(mix(UNDERWATER_FOG, PALE_UNDERWATER_FOG, saturate(paleGardenWeight)) / 255.0), L);
+    vec3 tint = biomeLookReady > 0.5 ? vec3(waterFogR, waterFogG, waterFogB)
+                                     : mix(UNDERWATER_FOG, PALE_UNDERWATER_FOG, saturate(paleGardenWeight));
+    vec3 light = skyIrradianceNow() * skyAmbientBoost() * exp(-eyeWaterDepth(L) * UNDERWATER_LIGHT_FALLOFF);
+    return mediumFogColour(srgbToLinear(tint / 255.0), light, L);
 }
 // the fog closes in at a quarter of its distance right after diving and opens up while the eye adapts
-float underwaterFogEnd() { return UNDERWATER_FOG_END * mix(UNDERWATER_FOG_FIRST, 1.0, saturate(waterEyeAdapt)); }
+float underwaterFogEnd() {
+    float end = biomeLookReady > 0.5 ? waterFogEnd : UNDERWATER_FOG_END;
+    return end * mix(UNDERWATER_FOG_FIRST, 1.0, saturate(waterEyeAdapt));
+}
 
 // key light visibility at the surface point: shadow map (offset straight up), cloud shadow, range fade
 float waterKeyVisibility(vec3 pos, float viewDepth, Daylight L) {
@@ -335,7 +349,10 @@ void main() {
                 col = mix(col, lit, coverage);
             }
         #endif
-        col = surface + col * (1.0 - surfaceReflectance(max(dot(-V, N), 0.0)));
+        // the distance fog covers the whole water, as the target look's water pass does (mix(water, fog, fogT)): what
+        // is seen through the surface fades with it. Added on top of the fogged reflection it left far water brighter
+        // than the fogged land around it, a checkerboard of water chunks at the edge of the render distance
+        col = surface + col * (1.0 - surfaceReflectance(max(dot(-V, N), 0.0))) * (1.0 - fogT);
         // the translucents in front back on top (with the water texture layer in colortex1 their colour is unknown:
         // the water result is then blended in by their transmittance)
         #ifdef WATER_TEXTURE

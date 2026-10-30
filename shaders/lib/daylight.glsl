@@ -37,8 +37,37 @@ struct Daylight {
     float eyeSky;         // sky light at the camera (eyeBrightnessSmooth)
 };
 
-// 0 = noon, 0.25 = sunset, 0.5 = midnight, 0.75 = sunrise (Iris sunAngle is 0 at sunrise)
-float dayPhase() { return fract(sunAngle - 0.25); }
+uniform int worldTime;
+// 0 = noon, 0.25 = sunset, 0.5 = midnight, 0.75 = sunrise. The look tables follow the time of day linearly, as the
+// target look's do (its curves are keyed by the clock: the sun is lit down to 0.292, /time set 13000); the sun itself
+// moves on an eased curve, ahead of the clock in the evening and behind it in the morning. Read from the sun's
+// position the tables ran ~0.03 of a day late at dusk: at 13000 a bright twilight (11 lux) where the target look is
+// already night, three to four times its light at 12500 and 23500
+#ifdef DAY_CLOCK_PHASE
+    float dayPhase() { return fract(float(worldTime) / 24000.0 - 0.25); }
+#else
+    float dayPhase() { return fract(sunAngle - 0.25); }
+#endif
+// the same scale from the sun's position (Iris sunAngle is 0 at sunrise): where the light source switches
+float sunPhase() { return fract(sunAngle - 0.25); }
+// lib/look.glsl SKY_AMBIENT_BOOST at this time of day (overworld; 1 elsewhere)
+float skyAmbientBoost() {
+    #if defined DIM_NETHER || defined DIM_END
+        return 1.0;
+    #else
+        float d = dayPhase(), x = min(d, 1.0 - d), b = SKY_AMBIENT_BOOST[SKY_AMBIENT_KEYS - 1];
+        for (int i = 1; i < SKY_AMBIENT_KEYS; i++) {
+            if (x <= SKY_AMBIENT_AT[i]) {
+                b = mix(SKY_AMBIENT_BOOST[i - 1], SKY_AMBIENT_BOOST[i], (x - SKY_AMBIENT_AT[i - 1]) / (SKY_AMBIENT_AT[i] - SKY_AMBIENT_AT[i - 1]));
+                break;
+            }
+        }
+        return b;
+    #endif
+}
+// the least light under water follows the same evening as the sky's ambient: in the target look the water at 13000
+// is still about twice as bright as at midnight (1 at midnight, where the floors were matched)
+float underwaterNightLift() { return sqrt(skyAmbientBoost() / SKY_AMBIENT_BOOST[SKY_AMBIENT_KEYS - 1]); }
 
 Daylight daylight() {
     Daylight L;
@@ -114,7 +143,14 @@ Daylight daylight() {
     L.skyTop = srgbToLinear(top);
     L.skyRim = srgbToLinear(rim);
     L.rayleigh = rayleigh;
-    L.haloExponent = 1.0 / max(haloWidth, 1e-3);
+    // the glow's lobe is cos^w with w the atmosphere's glare shape itself (0.05 at sunrise, 0.074 at sunset): a wide warm
+    // band over the whole sun side of the horizon, as in the target look. Read as 1 / shape (cos^20) it was a small
+    // halo around the sun
+    #if SUN_GLARE_SHAPE == 1
+        L.haloExponent = haloWidth;
+    #else
+        L.haloExponent = 1.0 / max(haloWidth, 1e-3);
+    #endif
     L.rimBase = -RIM_BELOW;
     L.rimSpan = rimHeight + RIM_BELOW;
     L.haloSpan = haloHeight;
@@ -179,6 +215,14 @@ Daylight daylight() {
     }
 #endif
     return L;
+}
+
+// block light colour from the lightmap level: x = level^2; red follows x, green and blue rise later (warm torch light)
+vec3 blockLightColor(float level) {
+    float x = level * level;
+    float green = (x * 0.6 + 0.4) * 0.6 + 0.4;
+    float blue = x * x * 0.6 + 0.4;
+    return min(vec3(x, x * green, x * blue), 1.0);
 }
 
 #endif

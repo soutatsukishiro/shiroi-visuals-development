@@ -8,7 +8,13 @@
 #if defined GBUF_TERRAIN && defined COLORED_LIGHT && defined VERTEX_SHADER
     #define LC_SPLAT
     #include "/lib/lightcolor.glsl"
+#endif
+#if defined GBUF_TERRAIN && defined VERTEX_SHADER && (defined COLORED_LIGHT || defined PBR_TABLE)
     uniform sampler2D gtexture;
+    #ifdef PBR_TABLE
+        #define SPRITE_STATS_CACHE
+    #endif
+    #include "/lib/sprite_mean.glsl"
 #endif
 
 #ifdef VERTEX_SHADER
@@ -24,6 +30,9 @@ out vec3 vPlayerPos;
 flat out vec2 vMidUv;
 flat out vec2 vHalfUv;
 flat out int vMat;
+#if defined GBUF_TERRAIN && defined PBR_TABLE
+flat out vec4 vSpriteStats;  // the sprite's mean / darkest / brightest luminance and saturation, x < 0 when not read (spriteRelativeMaterial)
+#endif
 #ifdef GBUF_ENTITIES
 flat out int vNameTagAlpha;
 #endif
@@ -48,7 +57,8 @@ void main() {
         #ifdef COLORED_LIGHT
             // light sources (one corner per quad) give their colour to the light grid (lib/lightcolor.glsl); the
             // Nether has no shadow pass, which does it elsewhere
-            if ((vMat == MAT_EMISSIVE_FULL || vMat == MAT_EMISSIVE_TORCH || vMat == MAT_LAVA) && (gl_VertexID & 3) == 0)
+            if ((vMat == MAT_EMISSIVE_FULL || vMat == MAT_EMISSIVE_TORCH || vMat == MAT_LAVA || vMat == MAT_EMISSIVE_CORE
+                 || vMat == MAT_EMISSIVE_CORE_WARM || vMat == MAT_EMISSIVE_SOFT) && (gl_VertexID & 3) == 0)
                 lightSplat(gtexture, vUv, mc_midTexCoord.xy, vPlayerPos);
         #endif
     #elif defined GBUF_BLOCK
@@ -63,7 +73,7 @@ void main() {
 #ifdef MOD_COMPAT
     vCompatFallback = 0;
     #if defined GBUF_TERRAIN || defined GBUF_BLOCK
-        bool knownId = vMat >= MAT_DEFAULT && (vMat <= MAT_LAST_BLOCK || vMat == MAT_END_FRAME_EYE);
+        bool knownId = knownBlockId(vMat);
         vCompatFallback = (!knownId || vMat == MAT_DEFAULT) ? 1 : 0;
         if (!knownId) vMat = MAT_DEFAULT;
     #elif defined GBUF_ENTITIES
@@ -98,6 +108,11 @@ void main() {
         #ifdef ENTITY_MOTION
             vPrevPos = vNameTagAlpha != 0 ? vec4(0.0) : trackEntityVertex(entityId, vUv, vPlayerPos);
         #endif
+    #endif
+    #if defined GBUF_TERRAIN && defined PBR_TABLE
+        // once per vertex rather than per pixel, and only for the materials that use it
+        vSpriteStats = spriteRelativeMaterial(vMat) && vHalfUv.x > 0.0 && vHalfUv.y > 0.0
+                     ? spriteLumStatsCached(gtexture, vMidUv, vHalfUv) : vec4(-1.0);
     #endif
     gl_Position = taaJitterClip(gl_ProjectionMatrix * viewPos);
 }
@@ -136,6 +151,9 @@ in vec3 vPlayerPos;
 flat in vec2 vMidUv;
 flat in vec2 vHalfUv;
 flat in int vMat;
+#if defined GBUF_TERRAIN && defined PBR_TABLE
+flat in vec4 vSpriteStats;
+#endif
 #ifdef GBUF_ENTITIES
 flat in int vNameTagAlpha;
 #endif
@@ -267,14 +285,18 @@ void main() {
         // light blocks as items (in a hand, dropped, in a frame): they glow as the placed block does, texel by texel,
         // with the same emissive test (a torch's handle and a lantern's cage stay as they are). For an item that places
         // a block Iris gives the block's id (block.properties), not an item id
-        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
+        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL
+            || currentRenderedItemId == MAT_EMISSIVE_CORE || currentRenderedItemId == MAT_EMISSIVE_CORE_WARM
+            || currentRenderedItemId == MAT_EMISSIVE_SOFT)
             m.emissive = blockMaterial(currentRenderedItemId, tex.rgb).emissive;
         m.emissive = max(m.emissive, markedGlow);
     #endif
-    // metal / gem blocks, obsidian and ores: the material texel by texel (lib/surface.glsl texelDetailMaterial)
+    // metal / gem blocks (and the spawner), obsidian and ores: the material texel by texel (lib/surface.glsl texelDetailMaterial)
     #if defined PBR_TABLE && defined GBUF_TERRAIN
-        bool texelDetail = vMat == MAT_ORE || vMat == MAT_ORE_GEM || vMat == MAT_METAL || vMat == MAT_GEM || vMat == MAT_OBSIDIAN || vMat == MAT_ICE;
+        bool texelDetail = vMat == MAT_ORE || vMat == MAT_ORE_GEM || vMat == MAT_METAL || vMat == MAT_SPAWNER || vMat == MAT_GEM || vMat == MAT_OBSIDIAN || vMat == MAT_ICE;
         if (texelDetail && vHalfUv.x > 0.0 && vHalfUv.y > 0.0) texelDetailMaterial(m, vMat, tex.rgb, spriteMeanLumSat(gtexture, vMidUv, vHalfUv));
+        // leaves, wood and mud: roughness by the texel's brightness against its sprite's mean (read per vertex)
+        if (vSpriteStats.x >= 0.0) spriteRelativeRoughness(m, vMat, tex.rgb, vSpriteStats);
     #endif
     vec3 tsNormal = vec3(0.0, 0.0, 1.0);
     bool hasTextureSet = false;

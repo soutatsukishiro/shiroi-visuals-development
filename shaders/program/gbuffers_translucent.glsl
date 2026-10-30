@@ -55,7 +55,7 @@ void main() {
 #ifdef MOD_COMPAT
     vCompatFallback = 0;
     #ifndef GBUF_HAND_WATER
-        bool knownId = vMat >= MAT_DEFAULT && (vMat <= MAT_LAST_BLOCK || vMat == MAT_END_FRAME_EYE);
+        bool knownId = knownBlockId(vMat);
         vCompatFallback = (!knownId || vMat == MAT_DEFAULT) ? 1 : 0;
         if (!knownId) vMat = MAT_DEFAULT;
     #endif
@@ -254,7 +254,9 @@ void main() {
         // Flat items (a torch or a lantern in the hand is a sprite) are drawn translucent, so they come here and not
         // to gbuffers_hand: the flame glows as the placed block's does, with its material instead of the glass one.
         // For an item that places a block Iris gives the block's id (block.properties), not an item id
-        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL)
+        if (currentRenderedItemId == MAT_EMISSIVE_TORCH || currentRenderedItemId == MAT_EMISSIVE_FULL
+            || currentRenderedItemId == MAT_EMISSIVE_CORE || currentRenderedItemId == MAT_EMISSIVE_CORE_WARM
+            || currentRenderedItemId == MAT_EMISSIVE_SOFT)
             m = blockMaterial(currentRenderedItemId, tex.rgb);
         m.emissive = max(m.emissive, markedGlow);
     #endif

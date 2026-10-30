@@ -11,7 +11,6 @@ void main() { vUv = gl_MultiTexCoord0.xy; gl_Position = sceneClip(ftransform());
 #ifdef FRAGMENT_SHADER
 #include "/lib/gbuffer.glsl"
 #include "/lib/shading.glsl"
-#include "/lib/ssr.glsl"
 #include "/lib/exposure.glsl"
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
@@ -21,6 +20,8 @@ uniform sampler2D colortex5;
 uniform sampler2D colortex6;
 uniform sampler2D colortex7;
 uniform sampler2D depthtex0;
+// after the samplers: lib/ssr.glsl reads colortex3
+#include "/lib/ssr.glsl"
 in vec2 vUv;
 
 /* RENDERTARGETS: 0,7,2 */
@@ -70,7 +71,7 @@ void main() {
     if (lighting.w < 0.75) {
         outColor = vec4(sanitize(texture(colortex0, sceneUv(vUv)).rgb + texture(colortex7, sceneUv(vUv)).rgb), 1.0);
         outDirect = vec4(0.0);
-        outGlow = vec4(materialIdOf(lighting) == MAT_EYES ? 1.0 : 0.0, 0.0, 0.0, 1.0);
+        outGlow = vec4(materialIdOf(lighting) == MAT_EYES ? 1.0 / GLOW_WEIGHT_RANGE : 0.0, 0.0, 0.0, 1.0);
         return;
     }
 
@@ -106,9 +107,10 @@ void main() {
     outColor = vec4(sanitize(col), 1.0);
     // without the caustics: composite puts them back only where the surface is seen through water
     outDirect = vec4((key.diffuse + key.specular) * (1.0 - fogT) / max(caustics, 1e-3), 1.0);
-    // the glint glows too: its share of the bloom, from its brightness on screen
+    // the glint glows too: its share of the bloom, from its brightness on screen. A glowing block lit only by its own
+    // albedo is far dimmer than a mob's eyes (drawn x4): BLOCK_GLOW gives it a halo of its own
     float glintOnScreen = luminance(glint) / screenScale();
-    outGlow = vec4(max(s.emissive, saturate(glintOnScreen * GLINT_GLOW)) * (1.0 - fogT), 0.0, 0.0, 1.0);
+    outGlow = vec4(max(s.emissive * BLOCK_GLOW, saturate(glintOnScreen * GLINT_GLOW)) * (1.0 - fogT) / GLOW_WEIGHT_RANGE, 0.0, 0.0, 1.0);
 
     #if DEBUG_VIEW == 1
         outColor = vec4(s.albedo, 1.0);

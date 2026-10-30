@@ -34,13 +34,6 @@ struct Surface {
 struct KeyLightResult { vec3 diffuse; vec3 specular; float shadow; };
 
 // ------------------------------------------------------------------ light sources
-// block light colour from the lightmap level: x = level^2; red follows x, green and blue rise later (warm torch light)
-vec3 blockLightColor(float level) {
-    float x = level * level;
-    float green = (x * 0.6 + 0.4) * 0.6 + 0.4;
-    float blue = x * x * 0.6 + 0.4;
-    return min(vec3(x, x * green, x * blue), 1.0);
-}
 
 // response to the sky lightmap: s^5, blended towards s^3 by SKY_LIGHT_CURVE
 float skyLightResponse(float s) {
@@ -85,8 +78,23 @@ vec3 surfaceBlockLight(Surface s) {
     #endif
 }
 
+// depth under the water surface (blocks) of a point under water: the game's sky light loses a level per block of
+// water, so down to 15 blocks it gives the depth; deeper it reads 0, and the sea level stands in for the surface
+float waterDepthAt(float skyLevel, float worldY) {
+    return skyLevel > 0.0 ? (1.0 - skyLevel) * 15.0 : max(15.0, UNDERWATER_SEA_LEVEL - worldY);
+}
+// the sky's share at a surface. With the camera under water the sky reaches what it sees through the water above:
+// by the lightmap alone a sea floor deeper than 15 blocks got none (lit by the sun's caustics only, a harsh net on
+// black) where the target look lights it softly
+float skyAmbientShare(Surface s) {
+    float share = skyLightResponse(s.skyLevel) * skyAmbientBoost();
+    if (isEyeInWater == 1)
+        share = max(share, exp(-waterDepthAt(s.skyLevel, s.pos.y + cameraPosition.y) * UNDERWATER_LIGHT_FALLOFF) * UNDERWATER_AMBIENT);
+    return share;
+}
 vec3 ambientLight(Surface s, Daylight L, vec3 skyIrradiance) {
-    return max(surfaceBlockLight(s) * L.blockScale + skyLightResponse(s.skyLevel) * skyIrradiance, L.ambientFloor);
+    vec3 floorLight = L.ambientFloor * (isEyeInWater == 1 ? UNDERWATER_AMBIENT_FLOOR * underwaterNightLift() : 1.0);
+    return max(surfaceBlockLight(s) * L.blockScale + skyAmbientShare(s) * skyIrradiance, floorLight);
 }
 
 // water caustics: an animated tiling pattern projected straight down from the surface. The returned factor
@@ -118,8 +126,11 @@ vec3 specularColor(Surface s) { return s.metal * s.albedo + (1.0 - s.metal) * 0.
 // ------------------------------------------------------------------ key light
 KeyLightResult keyLight(Surface s, Daylight L, vec3 V, float caustics, float transmissionScale) {
     KeyLightResult r = KeyLightResult(vec3(0.0), vec3(0.0), 0.0);
-    // a surface the sky light never reaches (sealed caves) gets no sun or moon light either
-    if (s.skyLevel < 0.5 / 255.0) return r;
+    // a surface the sky light never reaches (sealed caves) gets no sun or moon light either. Not with the camera
+    // under water: the game's sky light loses a level per block of water, so every sea floor deeper than 15 blocks
+    // read as a sealed cave and the sun never reached it (the target look lights it through the water); there the
+    // shadow map alone decides
+    if (s.skyLevel < 0.5 / 255.0 && isEyeInWater != 1) return r;
     vec3 N = s.normal, Lk = L.keyDir;
     float subsurface = s.sss * SSS_CONTRIBUTION;
     float NdL = dot(N, Lk);

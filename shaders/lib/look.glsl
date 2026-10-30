@@ -264,7 +264,7 @@ const vec2 FROXEL_RANGE = vec2(0.025, 250.0);   // view depth covered by the sli
 
 // ------------------------------------------------------------------ participating media
 // air: density, scattering and absorption per channel, Henyey-Greenstein anisotropy, height up to which it is dense
-const float AIR_DENSITY = 0.05;
+const float AIR_DENSITY = 0.0;    // without the biome uniforms: no volumetric air, as in most biomes
 const vec3  AIR_SCATTERING = vec3(0.04);
 const vec3  AIR_ABSORPTION = vec3(0.0);
 const float AIR_G = 0.6;
@@ -288,6 +288,17 @@ const vec3  UNDERWATER_FOG = vec3(68.0, 175.0, 245.0);
 const vec3  PALE_UNDERWATER_FOG = vec3(85.0, 105.0, 128.0);
 const float UNDERWATER_FOG_END = 60.0;
 const float UNDERWATER_FOG_FIRST = 0.25;
+// the least light a fog the camera is inside gets, x AMBIENT_FLOOR (program/composite_scene.glsl mediumFogColour)
+const float MEDIUM_FOG_FLOOR = 6.0;
+// camera under water: how the light of the water fog fades with the depth under the surface (per block), and the
+// sea level that stands in for the surface deeper than the sky light tells
+const float UNDERWATER_LIGHT_FALLOFF = 0.02;
+const float UNDERWATER_SEA_LEVEL = 63.0;
+// camera under water: the sky ambient of what it sees, x the light left at that depth (lib/shading.glsl). These and
+// UNDERWATER_EV / MEDIUM_FOG_FLOOR are matched to the target look in open ocean ~19 blocks deep at 6000, 13000 and
+// 18000 (open water and the floor a few blocks away within ~10-25 of each channel)
+const float UNDERWATER_AMBIENT = 2.5;
+const float UNDERWATER_AMBIENT_FLOOR = 4.0;   // x AMBIENT_FLOOR for what the camera sees under water
 // procedural waves (WATER_WAVES, off by default): octave count, time scale, speed of the first octave, crest
 // exponent, domain warp along each wave, and per octave: amplitude x, frequency x, speed x, direction turn (rad)
 const int   WAVE_OCTAVES = 28;
@@ -300,7 +311,7 @@ const vec4  WAVE_OCTAVE_STEP = vec4(0.8, 1.2, 1.03, 1.399);
 const vec3  POWDER_SNOW_FOG = vec3(159.0, 187.0, 200.0);
 const float POWDER_SNOW_FOG_END = 2.0;
 // exposure change (EV) with the camera in water / in powder snow (asked for, not in the base data)
-const float UNDERWATER_EV = -0.75;
+const float UNDERWATER_EV = -1.75;
 const float POWDER_SNOW_EV = 1.0;
 // biome grading (deserts 4400 K, badlands 4800 K, shaders.properties) applies while the sun is within this height
 // (sin of the elevation) of the horizon, fading out above it: the warm sunrises and sunsets of those biomes
@@ -328,6 +339,24 @@ const float STORM_CLOUD_GREY = 30.0;    // cloud colour under thunder
 const float CLOUD_WEATHER_WEIGHT = 0.95;
 const float CLOUD_FOG_START = 0.9;      // clouds fade into the sky from 90 % of their draw distance
 const float CLOUD_REFLECTION = 0.25;    // strength of the sky reflection on clouds
+// the sky's ambient light on surfaces and clouds against the sky probe's irradiance, over the time from noon (0 noon,
+// 0.25 sunset / sunrise, 0.5 midnight; the same on both sides of the day). At noon the probe gives the target look's
+// balance of lit ground and sky; towards dusk its ambient falls with the sun, the target look's much less (the ground
+// at 12500 and 23500 half as bright against the same sky). Matched to the target look at 6000, 1000 / 11000, 12500 /
+// 23500, 13000 and 18000
+const int   SKY_AMBIENT_KEYS = 8;
+const float SKY_AMBIENT_AT[SKY_AMBIENT_KEYS]    = float[SKY_AMBIENT_KEYS](0.0, 0.15, 0.208, 0.25, 0.271, 0.292, 0.35, 0.5);
+const float SKY_AMBIENT_BOOST[SKY_AMBIENT_KEYS] = float[SKY_AMBIENT_KEYS](1.0, 1.0, 1.4, 2.0, 2.3, 6.0, 3.0, 1.6);
+const float MOON_SKY_GAIN = 1.6;        // the moon's share of the sky's light (lib/skymodel.glsl)
+const float CLOUD_MOON_DIRECT = 0.15;   // the moon's direct light on clouds by night (program/gbuffers_clouds.glsl)
+const float VOL_BLOCK_LIGHT_PEAK = 0.03;   // light grid weight next to one light (program/volume.glsl block light in the fog)
+// the cloud values below were matched to the target look's clouds over a birch forest at 23500, 1000 (beside the sun),
+// 6000, 13000 and 18000 (cloud against sky, per channel); its own are set by the game at run time
+const float CLOUD_ALPHA = 0.95;         // the clouds' one opacity (CloudColor.w of the target look); below 0: the game's (0.8)
+const float CLOUD_NIGHT_AMBIENT = 3.0;  // the sky ambient on clouds while the sun is down (program/gbuffers_clouds.glsl)
+const float CLOUD_AMBIENT = 7.0;        // sky ambient on clouds by day (program/gbuffers_clouds.glsl), matched to the target look
+const float CLOUD_AMBIENT_GREY = 0.85;   // how much of the sky ambient's colour is taken out by day (0 its own colour, 1 grey)
+const vec2  CLOUD_DAY_SUN = vec2(0.0, 0.14);   // sun height (sine) over which that day lighting fades in
 const float STAR_BRIGHTNESS = 0.05;
 const float MOON_MIN_LUX = 0.05;        // the moon disc stays visible while the moon light is off
 // End portal and gateway (program/gbuffers_solid.glsl endPortalStars)
@@ -339,6 +368,7 @@ const float END_PORTAL_BRIGHTNESS = 0.35;
 const float END_PORTAL_CELLS = 40.0;       // star cells across one turn of a layer (about 2.4 per block for the first)
 const float END_PORTAL_STAR_SIZE = 0.055;  // half width of a star, in cells
 const float END_PORTAL_STAR_FILL = 0.25;   // the share of cells that hold a star
+const float EMISSIVE_SOFT_SHARE = 0.33;   // surface glow of soft light blocks (block.properties 39) against glowstone
 const float GLOW_MARK_SHADED = 0.8;   // emissive share of texels a glow resource pack marks "emissive with shading" (alpha 253)
 const float KEY_HORIZON_FADE = 0.105;   // sine of the elevation (6 degrees) over which the sun's and the moon's direct light fade at the horizon
 
@@ -358,7 +388,9 @@ const vec2  EXPOSURE_AVG_CLAMP = vec2(0.125, 16.0);   // range of the average us
 // scaled by its own average against the average such a view of the sky has at that light (DUSK_EXPOSURE_REF.x x
 // illuminance^.y, set a little low so that view itself gets all of it), and never above the sky's. Faded in between
 // these day phases (distance from noon), outdoors only
-const vec2  DUSK_EXPOSURE_FLOOR = vec2(0.137, 0.762);
+// off (x = 0): fitted while the look tables followed the sun's position, it made up for their delay at dusk; with
+// the tables on the clock it darkened nightfall below the target look
+const vec2  DUSK_EXPOSURE_FLOOR = vec2(0.0, 0.762);
 const vec2  DUSK_EXPOSURE_REF = vec2(0.0196, 1.463);
 const vec2  DUSK_EXPOSURE_PHASES = vec2(0.20, 0.235);
 

@@ -1,4 +1,4 @@
-#if CLOUD_SOLAR_RIM == 1
+#if CLOUD_SOLAR_RIM == 1 || CLOUD_MODEL == 1
 #ifndef SHIROI_CLOUD_SOLAR_RIM_GLSL
 #define SHIROI_CLOUD_SOLAR_RIM_GLSL
 #if CLOUD_RIM_STYLE == 0
@@ -60,7 +60,7 @@ vec3 shiroiCloudClassicRim(vec3 worldPos, vec3 normal, vec3 viewRay, float layer
 #endif
 // Grid traversal for Java cloud geometry: light transmission through the cloud cells along the view and the light,
 // aware of neighbouring cells. Java cells are 12x4x12 blocks.
-#if CLOUD_RIM_STYLE == 1
+#if CLOUD_RIM_STYLE == 1 || CLOUD_MODEL == 1
 float shiroiCloudExit(vec3 origin, vec3 direction, float layerBottom) {
     const float limit = 12.0;
     float y = clamp(origin.y - layerBottom, 0.0, CLOUD_THICKNESS);
@@ -150,7 +150,7 @@ vec3 shiroiCloudSolarRim(vec3 worldPos, vec3 normal, vec3 viewRay,
     // Match the existing directional-light selection in daylight.glsl. The lunar
     // contribution retains the moon's own low illuminance and cool colour;
     // the phase ramp makes this extra term zero at the light-switch boundary.
-    float d = dayPhase();
+    float d = sunPhase();
     if (d >= 0.25 && d <= 0.75) {
         float nightBlend = smoothstep(0.25, 0.27, d) * (1.0 - smoothstep(0.73, 0.75, d));
         // The renderer modulates diffuse transmission by the cloud's vertex

@@ -43,6 +43,7 @@ uniform float biomeFogDensity, biomeFogScatter, biomeFogAbsR, biomeFogAbsG, biom
 uniform float precipitationWeight;
 uniform float sulfurCavesWeight;
 uniform float netherSkyR, netherSkyG, netherSkyB, netherRayleigh;
+uniform float waterFogR, waterFogG, waterFogB, waterFogEnd;   // camera in water: the biome's fog colour (0-255), distance (shaders.properties)
 
 // ------------------------------------------------------------------ constants
 const float PI = 3.14159274;
@@ -206,6 +207,27 @@ vec2 normalizeLightmap(vec2 lm) { return clamp((lm - 1.0 / 32.0) * 16.0 / 15.0, 
 #define MAT_EYES 33          // emissive overlays: spider / enderman / phantom eyes, beacon beam
 #define MAT_OUTLINE 34       // the block selection outline (gbuffers_line): TAA keeps no history there
 #define MAT_END_FRAME_EYE 35  // block.properties 35, an End portal frame with its eye: only the raised eye glows
+#define MAT_SPAWNER 36        // block.properties 36, the monster spawner: metal like MAT_METAL, its magenta eye texels glow
+#define MAT_EMISSIVE_CORE 37  // block.properties 37, light sources of which only the brightest (or saturated) texels glow
+#define MAT_EMISSIVE_CORE_WARM 38  // block.properties 38, green copper bulbs: also their warm lamp texels
+#define MAT_EMISSIVE_SOFT 39  // block.properties 39, light sources that glow softly (froglights, shroomlight, magma, glow lichen)
+#define MAT_MUD 41             // block.properties 41-45: materials whose roughness follows each texel's brightness against
+#define MAT_PACKED_MUD 42      // its sprite's mean (lib/surface.glsl spriteRelativeRoughness)
+#define MAT_MUD_BRICKS 43
+#define MAT_MUDDY_ROOTS 44
+#define MAT_WOOD_SMOOTH 45     // poplar, pale oak planks, bamboo planks: smoother wood than MAT_WOOD
+#define MAT_BLACKSTONE 46      // blackstone (raw)
+#define MAT_POLISHED_BLACKSTONE 47  // polished blackstone, its bricks (cracked too), chiseled
+#define MAT_GILDED_BLACKSTONE 48    // gilded blackstone: gold texels metal and smoother
+// a block id the pack knows (MOD_COMPAT treats the others as unknown)
+bool knownBlockId(int id) {
+    return id >= MAT_DEFAULT && (id <= MAT_LAST_BLOCK || (id >= MAT_END_FRAME_EYE && id <= MAT_EMISSIVE_SOFT) ||
+                                 (id >= MAT_MUD && id <= MAT_GILDED_BLACKSTONE));
+}
+// materials whose roughness reads the sprite's mean (gbuffers_solid computes it per vertex for these only)
+bool spriteRelativeMaterial(int id) { return id == MAT_LEAVES || id == MAT_WOOD || (id >= MAT_MUD && id <= MAT_POLISHED_BLACKSTONE); }
+// the bloom's glow weight (colortex2.r after deferred) is stored divided by this, so blocks can glow more than 1
+#define GLOW_WEIGHT_RANGE 8.0
 #define MAT_CLOUD 40
 
 

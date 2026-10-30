@@ -27,6 +27,7 @@
 #define EMISSIVE_STRENGTH 1.0       // emissive brightness multiplier [0.5 1.0 2.0 4.0 8.0]
 #define GLINT_STRENGTH 1.0          // brightness of the enchantment shine [0.0 0.5 1.0 1.5 2.0 3.0]
 #define GLINT_GLOW 1.0              // how much the enchantment shine glows (bloom) [0.0 0.5 1.0 2.0 4.0]
+#define BLOCK_GLOW 1.0              // how much glowing blocks glow around them (bloom), against mob eyes and lit particles [0.0 0.5 1.0 2.0 4.0 6.0 8.0]
 #define EMISSIVE_BLOOM 6.0          // extra bloom input on emissive pixels (mob eyes, light blocks, lit particles) [0.0 2.0 4.0 6.0 8.0 12.0 16.0]
 
 // ---------------------------------------------------------------- lighting
@@ -44,9 +45,14 @@
 #define IBL                         // reflections of the pre-filtered sky probe
 
 // ---------------------------------------------------------------- clouds / sky
+#define VOL_SKY_VISIBILITY          // the fog's sky light and sun shafts follow the sky each point sees, as in the target look (off: the camera's)
+#define VOL_BLOCK_LIGHT             // torches and lamps light the volumetric fog around them, as in the target look (needs Coloured Light)
+#define CLOUD_PROBE                 // clouds in the sky probe, their reflections soft as the target look's (off: sharp, from the screen)
+#define SUN_GLARE_SHAPE 1           // 1: the sun's dawn / dusk glow as wide as the target look's; 0: a small halo [0 1]
+//#define DAY_CLOCK_PHASE           // sky colours and sun / moon light follow the clock (off: the sun's position, the default: its warm sunrise glow matches the target look)
 #define CLOUD_LIGHTING              // lit clouds (sun scattering through the cloud cells)
 #define CLOUD_DENSITY 0.35          // extinction inside a cloud cell [0.1 0.2 0.35 0.5 0.75 1.0]
-#define CLOUD_PHASE_G 0.6           // forward scattering of the clouds (Henyey-Greenstein g) [0.0 0.3 0.6 0.75 0.85]
+#define CLOUD_PHASE_G 0.85           // forward scattering of the clouds (Henyey-Greenstein g) [0.0 0.3 0.6 0.75 0.85]
 #define CLOUD_OPACITY 1.0           // extinction of the light crossing the cloud slab (0 = only the vanilla face alpha 0.8) [0.0 0.5 1.0 1.5 2.0 3.0]
 #define SUN_DISC_INTENSITY 10.0     // brightness of the sun and moon discs relative to their light [1.0 5.0 10.0 20.0 50.0 100.0]
 #define STAR_INTENSITY 1.0          // [0.0 0.5 1.0 2.0 4.0]
@@ -92,11 +98,12 @@
 #define MOD_COMPAT (1)
 
 // Optional cloud transmission and solar optics.
+#define CLOUD_MODEL 1 // 1: the target look's cloud model (real paths through the cells, one opacity); 0: slab + rim [0 1]
 #define CLOUD_SOLAR_RIM 1 // [0 1]
 #define CLOUD_RIM_STRENGTH 1.0 // [0.5 1.0 1.5 2.0]
 
 // Optional optical spread; existing general bloom stays unchanged.
 #define SUN_LIGHT_BLEED 1 // [0 1]
-#define SUN_HALO_STRENGTH 0.6 // the sky's glow around the sun near sunrise and sunset (the sun mie); 1 = its full strength [0.0 0.3 0.45 0.6 0.8 1.0]
+#define SUN_HALO_STRENGTH 1.0 // the sky's glow around the sun near sunrise and sunset (the sun mie); 1 = its full strength, as the target look [0.0 0.3 0.45 0.6 0.8 1.0]
 #define SUN_GLOW_STRENGTH 0.6 // the soft glow of the visible sun and moon discs [0.0 0.3 0.5 0.6 0.8 1.0 1.5 2.0]
 #define CLOUD_RIM_STYLE 1 // [0 1]

@@ -13,7 +13,7 @@
 // average is avg; 0 by day and underground (sky light at the camera), the lower clamp by night. Uniforms only, so it is
 // worked out here once per frame, for program/final.glsl
 float duskExposureFloorFor(float avg) {
-    float d = dayPhase();
+    float d = sunPhase();
     float sunLux;
     DAYCURVE(SUN_LUX, d, sunLux)
     float fromNoon = min(d, 1.0 - d);

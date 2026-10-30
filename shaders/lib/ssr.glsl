@@ -56,6 +56,11 @@ vec4 traceScreenReflection(sampler2D depthTex, vec3 viewPos, vec3 viewNormal, fl
         tBefore = t;
     }
     if (tHit < 0.0) return MISS;
+    #ifdef CLOUD_PROBE
+        // the target look's screen-space reflections only meet geometry: a cloud (it writes depth but no surface to
+        // colortex3) is left to the sky probe, which holds the clouds, soft (program/prepare.glsl)
+        if (texture(colortex3, sceneUv(hit.xy)).w < 0.25) return MISS;
+    #endif
     float lo = tBefore, hi = tHit;
     for (int k = 0; k < SSR_BISECTION_STEPS; k++) {
         float mid = (lo + hi) * 0.5;

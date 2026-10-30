@@ -95,13 +95,30 @@ Material blockMaterial(int id, vec3 texSrgb) {
     else if (id == MAT_WOOL) m.sss = 0.15;
     else if (id == MAT_LEAF_LITTER || id == MAT_PETALS) m.sss = 0.5;   // fallen leaves and petals let the light through
     else if (id == MAT_EMISSIVE_FULL)  m.emissive = smoothstep(0.25, 0.85, mx);
+    // froglights, shroomlight, magma, glow lichen, crying obsidian: the same test, a third as bright (glowstone glows
+    // about three times as much from its surface; all of them still light the area through the light level)
+    else if (id == MAT_EMISSIVE_SOFT)  m.emissive = smoothstep(0.25, 0.85, mx) * EMISSIVE_SOFT_SHARE;
     else if (id == MAT_EMISSIVE_TORCH) m.emissive = smoothstep(0.55, 0.92, mx) * smoothstep(0.15, 0.4, sat + lum * 0.5);
     // glowing details (lit redstone parts, sculk, trial spawner and vault): the coloured texels only; the flame test
-    // above also took in bright grey texels (a comparator's stone, a rail's iron)
-    else if (id == MAT_GLOW_DETAIL)    m.emissive = smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat);
+    // above also took in bright grey texels (a comparator's stone, a rail's iron). On a sculk catalyst only the bright
+    // cyan texels pass, not the bone. A sculk shrieker's swirl is a darker teal: fully saturated, green over red and not
+    // bluer than green, which keeps out the deep blue of sculk around it
+    else if (id == MAT_GLOW_DETAIL)    m.emissive = max(smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat),
+        smoothstep(0.18, 0.22, mx) * smoothstep(0.93, 0.97, sat) * smoothstep(-0.04, 0.0, texSrgb.g - texSrgb.b)
+        * smoothstep(0.15, 0.2, texSrgb.g - texSrgb.r));
+    // light sources that glow only in part: the near-white texels (a jack o'lantern's face, a copper bulb's lamp, an
+    // end rod's rod), or the bright, fully saturated ones (crying obsidian's tears, a respawn anchor's charge). Green
+    // copper bulbs add their warm lamp texels, as bright as the verdigris around them but much redder
+    else if (id == MAT_EMISSIVE_CORE || id == MAT_EMISSIVE_CORE_WARM) {
+        m.emissive = max(smoothstep(0.9, 0.97, mx), smoothstep(0.55, 0.65, mx) * smoothstep(0.9, 0.95, sat));
+        if (id == MAT_EMISSIVE_CORE_WARM) m.emissive = max(m.emissive, smoothstep(0.6, 0.7, mx) * smoothstep(0.35, 0.45, texSrgb.r - texSrgb.b));
+    }
     // the eye of ender in a frame: a dull green, too grey for the colour test above. Green clearly above red glows, the
     // dark pupil does not; the frame's own top has the same greens, so gbuffers_solid keeps the glow to the raised eye
     else if (id == MAT_END_FRAME_EYE)  m.emissive = smoothstep(0.08, 0.16, texSrgb.g - texSrgb.r) * smoothstep(0.25, 0.38, mx);
+    // the spawner's eyes: two dark magenta texels (#6E0453), too dark for the colour test above. Only they are this
+    // saturated with red and blue well over green; the cage's blues stay under 0.5 saturation
+    else if (id == MAT_SPAWNER)        m.emissive = smoothstep(0.7, 0.85, sat) * smoothstep(0.1, 0.22, min(texSrgb.r, texSrgb.b));
     else if (id == MAT_LAVA || id == MAT_NETHER_PORTAL) m.emissive = 1.0;
     else if (id == MAT_GLASS) m.roughness = 0.05;
     #ifdef PBR_TABLE
@@ -110,9 +127,25 @@ Material blockMaterial(int id, vec3 texSrgb) {
     else if (id == MAT_DIRT)        { m.roughness = 0.97; }
     else if (id == MAT_GRASS_BLOCK) { m.roughness = 0.9; m.sss = 0.0; }
     else if (id == MAT_SAND)        { m.roughness = mix(0.95, 0.8, lum); }
-    else if (id == MAT_WOOD)        { m.roughness = mix(0.9, 0.75, lum); }
+    // the sprite-relative materials at their texel's mean roughness; gbuffers_solid refines it texel by texel
+    // (spriteRelativeRoughness) where the sprite's mean is known
+    else if (id == MAT_WOOD)        { m.roughness = 0.80; }
+    else if (id == MAT_WOOD_SMOOTH) { m.roughness = 0.567; }
+    else if (id == MAT_MUD)         { m.roughness = 0.513; }
+    else if (id == MAT_PACKED_MUD)  { m.roughness = 0.711; }
+    else if (id == MAT_MUD_BRICKS)  { m.roughness = 0.583; }
+    else if (id == MAT_MUDDY_ROOTS) { m.roughness = 0.768; }
+    else if (id == MAT_BLACKSTONE)  { m.roughness = 0.77; }
+    else if (id == MAT_POLISHED_BLACKSTONE) { m.roughness = 0.61; }
+    // gilded blackstone as in the target look: the whole stone a little metallic (0.25), its gold flecks (the only
+    // saturated texels; all 37 found on the vanilla texture) metal 0.75 and smoother
+    else if (id == MAT_GILDED_BLACKSTONE) {
+        float gold = smoothstep(0.4, 0.65, sat);
+        m.metal = 0.25 + 0.5 * gold;
+        m.roughness = mix(0.88, 0.55, gold);
+    }
     else if (id == MAT_WOOL)        { m.roughness = 1.0; }
-    else if (id == MAT_LEAVES)      { m.roughness = 0.75; }
+    else if (id == MAT_LEAVES)      { m.roughness = 0.706; }
     else if (id == MAT_FOLIAGE)     { m.roughness = 0.8; }
     // roughness against the texel's luminance: wet farmland smooth (0.22-0.68, the dark soil smoothest), dry farmland rough; the petals of
     // the cherry grove fairly smooth; melon smoother than pumpkin
@@ -125,7 +158,7 @@ Material blockMaterial(int id, vec3 texSrgb) {
     else if (id == MAT_SNOW)        { m.roughness = 0.85; }
     else if (id == MAT_ICE)         { m.roughness = 0.08; }
     else if (id == MAT_GLASS)       { m.roughness = 0.05; }
-    else if (id == MAT_METAL)       { m.metal = 1.0; m.roughness = mix(0.5, 0.25, lum); }
+    else if (id == MAT_METAL || id == MAT_SPAWNER) { m.metal = 1.0 - m.emissive; m.roughness = mix(0.5, 0.25, lum); }
     else if (id == MAT_GEM || id == MAT_OBSIDIAN) { m.roughness = 0.12; m.metal = 0.0; }
     else if (id == MAT_ORE) {
         float speck = smoothstep(0.25, 0.5, sat) * smoothstep(0.25, 0.45, lum);   // saturated / bright texels: mineral
@@ -136,7 +169,7 @@ Material blockMaterial(int id, vec3 texSrgb) {
         float speck = smoothstep(0.2, 0.45, sat) * smoothstep(0.2, 0.4, lum);
         m.roughness = mix(0.88, 0.15, speck);
     }
-    else if (id == MAT_EMISSIVE_FULL)  { m.roughness = 0.6; }
+    else if (id == MAT_EMISSIVE_FULL || id == MAT_EMISSIVE_CORE || id == MAT_EMISSIVE_CORE_WARM || id == MAT_EMISSIVE_SOFT) { m.roughness = 0.6; }
     else if (id == MAT_EMISSIVE_TORCH) { m.roughness = 0.7; }
     else if (id == MAT_LAVA)           { m.roughness = 0.4; }
     else if (id == MAT_NETHER_PORTAL)  { m.roughness = 0.2; }
@@ -149,6 +182,31 @@ Material blockMaterial(int id, vec3 texSrgb) {
 // Material texel by texel for metal blocks, gem blocks, obsidian and ores (PBR_TABLE, terrain).
 // Each family follows a line in the texel luminance: the bright texels (iron plates, the relief of obsidian, the
 // mineral of an ore) are smoother, the grooves and the stone rougher, so only parts of a block reflect and catch the light, texel by texel.
+// Leaves, wood, mud and blackstone: in the target look each texture's roughness is its own brightness mapped onto one range per
+// family (all planks 0.71-0.99, bright texels smoothest), not one line of absolute brightness for the family. So the
+// texel's luminance is taken against its own sprite (spriteLumStats: mean, darkest, brightest, saturation). Leaves,
+// wood and blackstone: from the darkest to the brightest texel across the family's range; mud: base + slope x (lum - mean),
+// which follows it closer there. Fitted per family on the target look's texture sets against the game's textures
+// (mean error per texel 0.01-0.07; muddy mangrove roots 0.1, their pattern is not in the brightness). Leaves with their
+// own colour (cherry, poplar: saturated sprites, not tinted by the biome) are smoother.
+void spriteRelativeRoughness(inout Material m, int id, vec3 texSrgb, vec4 sprite) {
+    float lum = luminance(texSrgb);
+    float t = saturate((lum - sprite.y) / max(sprite.z - sprite.y, 0.02));   // 0 darkest .. 1 brightest
+    if (id == MAT_LEAVES)           m.roughness = mix(mix(0.89, 0.78, smoothstep(0.25, 0.4, sprite.w)), 0.41, t);
+    else if (id == MAT_WOOD)        m.roughness = mix(0.93, 0.71, t);
+    else if (id == MAT_WOOD_SMOOTH) m.roughness = mix(0.68, 0.44, t);
+    else if (id == MAT_BLACKSTONE)  m.roughness = mix(0.89, 0.61, t);
+    else if (id == MAT_POLISHED_BLACKSTONE) m.roughness = mix(0.75, 0.41, t);
+    else {
+        vec4 r;   // base, slope, lowest, highest
+        if (id == MAT_MUD)             r = vec4(0.513, -3.951, 0.24, 0.66);
+        else if (id == MAT_PACKED_MUD) r = vec4(0.711, -1.687, 0.61, 0.89);
+        else if (id == MAT_MUD_BRICKS) r = vec4(0.583, -1.531, 0.41, 0.79);
+        else                           r = vec4(0.768, -0.830, 0.49, 0.89);   // muddy mangrove roots
+        m.roughness = clamp(r.x + r.y * (lum - sprite.x), r.z, r.w);
+    }
+}
+
 // The lines here are fitted per family against the block's own mean (spriteMeanLumSat): metal blocks metal 0.75,
 // roughness 0.22..0.85; obsidian 0.42..0.81 with some metal (a dark, tinted sheen); gem blocks 0.22..0.68; ice
 // 0.22..0.68 (its white streaks the smoothest, never a mirror; ice, packed, blue and frosted ice alike). In an ore
@@ -165,10 +223,11 @@ void texelDetailMaterial(inout Material m, int id, vec3 texSrgb, vec2 mean) {
         return;
     }
     // base roughness, slope against d, range
+    if (id == MAT_SPAWNER) id = MAT_METAL;   // its glowing eye texels stay out of the metal (emissive is kept)
     vec4 r = id == MAT_METAL ? vec4(0.52, 1.2, 0.22, 0.85) : (id == MAT_OBSIDIAN ? vec4(0.68, 1.65, 0.42, 0.81)
            : (id == MAT_ICE ? vec4(0.57, 2.2, 0.22, 0.68) : vec4(0.5, 0.8, 0.22, 0.68)));
     m.roughness = clamp(r.x - r.y * d, r.z, r.w);
-    m.metal = id == MAT_METAL ? 0.75 : (id == MAT_OBSIDIAN ? clamp(0.34 - 2.0 * d, 0.0, 0.53) : 0.0);
+    m.metal = id == MAT_METAL ? 0.75 * (1.0 - m.emissive) : (id == MAT_OBSIDIAN ? clamp(0.34 - 2.0 * d, 0.0, 0.53) : 0.0);
 }
 
 // Armour pieces: metal and roughness against the texel's luminance, the bright plates smoothest. Ids from item.properties, given by

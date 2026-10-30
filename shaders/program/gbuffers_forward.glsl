@@ -110,7 +110,7 @@ void main() {
     vec3 col = shadeSurface(s, daylight(), V, dist, skyIrradianceNow(), vec4(0.0), 1.0, fogT, key);
     outColor = vec4(sanitize(col), c.a);
     #ifdef FWD_PARTICLES
-        outGlow = vec4(s.emissive * c.a, 0.0, 0.0, 0.0);
+        outGlow = vec4(s.emissive * c.a / GLOW_WEIGHT_RANGE, 0.0, 0.0, 0.0);
     #endif
     outLateDepth = vec4(0.0, 0.0, 0.0, -(2.0 + s.viewDepth));
     outCoverage = vec4(0.0, 0.0, 0.0, c.a);
@@ -159,7 +159,7 @@ void main() {
     if (c.a < 0.004) discard;
     outColor = vec4(srgbToLinear(c.rgb) * 4.0 * EMISSIVE_STRENGTH, c.a);
     outFlag = vec4(0.0, 0.0, float(MAT_EYES) / 255.0, 0.5);
-    outGlow = vec4(c.a, 0.0, 0.0, 1.0);
+    outGlow = vec4(c.a / GLOW_WEIGHT_RANGE, 0.0, 0.0, 1.0);
 }
 #endif
 

@@ -33,8 +33,8 @@ vec3 skyRadiance(vec3 dir, Daylight L) {
     vec3 halos = vec3(0.0);
     for (int i = 0; i < 2; i++) {
         float c = dot(dir, bodies[i].dir);
-        molecular += rayleighPhase(c) * bodies[i].lux;
-        float lobe = pow(max(c, 0.0), L.haloExponent);
+        molecular += rayleighPhase(c) * bodies[i].lux * (i == 1 ? MOON_SKY_GAIN : 1.0);   // the moonlit sky as bright as the target look's
+        float lobe = c > 0.0 ? pow(c, L.haloExponent) : 0.0;   // pow(0, 0) is undefined
         halos += bodies[i].tint * (bodies[i].lux * bodies[i].halo * SUN_HALO_STRENGTH * lobe * haloPhase(lobe));
     }
     return gradient * molecular + halos * (elevationFade(h, L.haloSpan) * L.skyRim * INV_4PI);

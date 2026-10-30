@@ -187,7 +187,7 @@ void main() {
         // the HDR frame above the threshold; alpha: the part of its luminance that is emissive (colortex2.x after
         // deferred: emissive surfaces, eyes layers, lit particles)
         float threshold = sceneAverageLuminance() * BLOOM_THRESHOLD;
-        #define TAP(o) { vec2 p = min(uv + (o), maxUv); vec3 c = texture(BLOOM_SRC, p).rgb; c *= step(threshold, luminance(c)); acc += vec4(c, luminance(c) * saturate(stableGlowMetadata(p).x)) * w; }
+        #define TAP(o) { vec2 p = min(uv + (o), maxUv); vec3 c = texture(BLOOM_SRC, p).rgb; c *= step(threshold, luminance(c)); acc += vec4(c, luminance(c) * clamp(stableGlowMetadata(p).x * GLOW_WEIGHT_RANGE, 0.0, GLOW_WEIGHT_RANGE)) * w; }
     #else
         #define TAP(o) { acc += texture(BLOOM_SRC, min(uv + (o), maxUv)) * w; }
     #endif
@@ -223,7 +223,7 @@ void main() {
         // the emissive share of this level's own downsample (Iris flips the target, so this reads the down pass
         // result): light sources get a tight glow, everything else only the wide haze of the lower levels
         vec4 own = texture(BLOOM_SELF, uv);
-        acc += own.rgb * saturate(own.a / max(luminance(own.rgb), 1e-6)) * EMISSIVE_BLOOM;
+        acc += own.rgb * clamp(own.a / max(luminance(own.rgb), 1e-6), 0.0, GLOW_WEIGHT_RANGE) * EMISSIVE_BLOOM;
     #endif
     outBloom = vec4(acc, 0.0);
 }
