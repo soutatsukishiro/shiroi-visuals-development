@@ -289,9 +289,11 @@ void main() {
     #if defined GBUF_BLOCK || defined GBUF_ENTITIES
         // after the mod compatibility fallback, which would give it the plain material
         if (vMat == MAT_NETHER_PORTAL) {
+            // a black, matte surface: the stars are added after the shading, as light of their own, so neither the
+            // block light (15 there) nor the hue of a nearby light (the lava under the portal) brightens or tints them
             hasTextureSet = false;
-            albedo = linearToSrgb(endPortalStars(vPlayerPos, normalize(vNormal)) * END_PORTAL_BRIGHTNESS);
-            m = Material(0.0, 1.0, 1.0, 0.0);
+            albedo = vec3(0.0);
+            m = Material(0.0, 0.0, 1.0, 0.0);
         }
     #endif
     bool normalMapped = hasTextureSet && tsNormal.z < 0.9999;
@@ -337,6 +339,9 @@ void main() {
         vec3 col = shadeSurface(s, daylight(), V, dist, skyIrradianceNow(), vec4(0.0), caustics, fogT, key);
         #ifdef IRIS_INLINE_GLINT
             if (mc_hasGlint()) col += glintRadiance(mc_sampleGlint()) * (1.0 - fogT);
+        #endif
+        #if defined GBUF_BLOCK || defined GBUF_ENTITIES
+            if (vMat == MAT_NETHER_PORTAL) col += endPortalStars(vPlayerPos, geoNormal) * END_PORTAL_BRIGHTNESS * (1.0 - fogT);
         #endif
         outLight.w = SURFACE_FORWARD;
         // after deferred colortex2 is the bloom glow weight, and deferred skips it for forward pixels: write no normal

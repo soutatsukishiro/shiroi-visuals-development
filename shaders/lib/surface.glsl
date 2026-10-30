@@ -97,8 +97,12 @@ Material blockMaterial(int id, vec3 texSrgb) {
     else if (id == MAT_EMISSIVE_FULL)  m.emissive = smoothstep(0.25, 0.85, mx);
     else if (id == MAT_EMISSIVE_TORCH) m.emissive = smoothstep(0.55, 0.92, mx) * smoothstep(0.15, 0.4, sat + lum * 0.5);
     // glowing details (lit redstone parts, sculk, trial spawner and vault, a frame's eye): the coloured texels only; the
-    // flame test above also took in bright grey texels (a comparator's stone, a rail's iron)
-    else if (id == MAT_GLOW_DETAIL)    m.emissive = smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat);
+    // flame test above also took in bright grey texels (a comparator's stone, a rail's iron). The pale yellow of an End
+    // portal frame (red as high as green, blue well below) is stone, not the eye: left out
+    else if (id == MAT_GLOW_DETAIL) {
+        float paleYellow = (1.0 - smoothstep(0.03, 0.07, abs(texSrgb.r - texSrgb.g))) * smoothstep(0.08, 0.16, min(texSrgb.r, texSrgb.g) - texSrgb.b);
+        m.emissive = smoothstep(0.45, 0.75, mx) * smoothstep(0.3, 0.55, sat) * (1.0 - paleYellow);
+    }
     else if (id == MAT_LAVA || id == MAT_NETHER_PORTAL) m.emissive = 1.0;
     else if (id == MAT_GLASS) m.roughness = 0.05;
     #ifdef PBR_TABLE

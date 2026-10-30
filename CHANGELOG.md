@@ -18,8 +18,9 @@
   redstone parts (comparators, repeaters, observers, crafters, powered rails), the eye of an End portal frame and
   the dragon egg. The End portal frame itself no longer glows, only its eye, and the creaking heart glows again
   (its old rule used a block state that no longer exists).
-- End portals and gateways show a glowing field of stars in depth that shifts as you move, instead of the almost
-  black block Iris draws in their place.
+- End portals and gateways show a dark field of small teal, green and blue stars in depth that shifts as you move,
+  instead of the almost black block Iris draws in their place. The stars are their own light: nearby lava or torches
+  don't tint or brighten them.
 - Works with Enchantment Glows and other resource packs that mark glowing texels in their item textures: those
   parts now glow (with their animation) instead of showing as plain texture.
 

@@ -332,10 +332,10 @@ const float STAR_BRIGHTNESS = 0.05;
 const float MOON_MIN_LUX = 0.05;        // the moon disc stays visible while the moon light is off
 // End portal and gateway (program/gbuffers_solid.glsl endPortalStars)
 const int   END_PORTAL_LAYERS = 8;
-const vec3  END_PORTAL_GROUND = vec3(0.004, 0.018, 0.022);   // linear
+const vec3  END_PORTAL_GROUND = vec3(0.0006, 0.0025, 0.003);  // linear, unlit: a near black teal
 const vec3  END_PORTAL_TINT_A = vec3(0.20, 0.95, 0.80);      // teal green
 const vec3  END_PORTAL_TINT_B = vec3(0.35, 0.50, 1.00);      // blue
-const float END_PORTAL_BRIGHTNESS = 1.0;
+const float END_PORTAL_BRIGHTNESS = 0.35;
 const float GLOW_MARK_SHADED = 0.8;   // emissive share of texels a glow resource pack marks "emissive with shading" (alpha 253)
 const float KEY_HORIZON_FADE = 0.105;   // sine of the elevation (6 degrees) over which the sun's and the moon's direct light fade at the horizon
 
