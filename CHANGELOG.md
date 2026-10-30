@@ -14,6 +14,10 @@
 - Enchanted items shine as in vanilla by day and by night (the shine used to be lost in daylight), and the moving
   shine glows. Materials, Enchantment Shine and Enchantment Glow set how much.
 - Nether portals light the blocks around them in purple, like the coloured light of soul and copper torches.
+- More blocks glow in their coloured parts: trial spawners and vaults, sculk sensors and shriekers, lit
+  redstone parts (comparators, repeaters, observers, crafters, powered rails), the eye of an End portal frame and
+  the dragon egg. The End portal frame itself no longer glows, only its eye, and the creaking heart glows again
+  (its old rule used a block state that no longer exists).
 - End portals and gateways show a glowing field of stars in depth that shifts as you move, instead of the almost
   black block Iris draws in their place.
 - Works with Enchantment Glows and other resource packs that mark glowing texels in their item textures: those

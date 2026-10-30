@@ -196,6 +196,7 @@ vec2 normalizeLightmap(vec2 lm) { return clamp((lm - 1.0 / 32.0) * 16.0 / 15.0, 
 #define MAT_FARMLAND 24
 #define MAT_LEAF_LITTER 25
 #define MAT_PETALS 26
+#define MAT_GLOW_DETAIL 27    // glowing details of blocks that give no light (block.properties 27): emissive, not a light source
 #define MAT_MELON 28
 #define MAT_PUMPKIN 29
 #define MAT_LAST_BLOCK 29    // the highest block material id (block.properties); MOD_COMPAT treats ids above it as unknown
