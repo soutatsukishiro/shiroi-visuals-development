@@ -1,5 +1,9 @@
 # Shiroi Visuals
 
+### With every official update, the project will be automatically published by the Claude AI agent.
+### Handcrafted by Hakuchou Studios, open to any modifications by the community.
+### (Official Partnerships: tsukishirosouta@gmail.com)
+
 A shader pack for Minecraft Java Edition with soft, colourful lighting: a bright sky that changes through the day,
 clear water, sharp pixel shadows and gentle fog. It runs on Iris, and there's a separate edition for Vitrail
 (Minecraft's Vulkan renderer).
