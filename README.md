@@ -7,6 +7,10 @@ A shader pack for Minecraft Java Edition with soft, colourful lighting: a bright
 clear water, sharp pixel shadows and gentle fog. It runs on Iris, and there's a separate edition for Vitrail
 (Minecraft's Vulkan renderer).
 
+## Attention!
+Official Download on [Modrinth](https://modrinth.com/shader/shiroi-visuals)
+
+
 This repository is the source of the pack. If you just want to play with it, grab a ZIP from
 [Releases](https://github.com/soutatsukishiro/shiroi-visuals-development/releases) and see
 [packaging/README_iris.md](packaging/README_iris.md) for how to install it.
